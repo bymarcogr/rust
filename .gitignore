@@ -1,2 +1,3 @@
+fast_file_flow/target
 fast_file_flow/target/**/*.*
 fast_file_flow/Cargo.lock
