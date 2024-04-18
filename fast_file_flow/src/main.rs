@@ -9,7 +9,7 @@ use iced::{
     border, color, window, Alignment, Application, Border, Color, Command, Element, Length,
     Padding, Renderer, Settings, Size, Theme,
 };
-use iced::widget::image::Image;
+// use iced::widget::image::Image;
 
 
 fn main() -> iced::Result {
@@ -113,16 +113,16 @@ impl iced::Application for FastFileFlow {
             ),
             Page::Configuration => config_page(FastFileFlowMessage::Router(Page::Main)),
         };
-        let image_handle = Handle::from_path("resources/logo.png");
-        let image = Image::new(image_handle.clone())
-        .width(Length::Units(400))  // Define el ancho de la imagen
-        .height(Length::Units(300)); // Define la altura de la imagen
+        // let image_handle = Handle::from_path("resources/logo.png");
+        // let image = Image::new(image_handle.clone())
+        // .width(Length::Units(400))  // Define el ancho de la imagen
+        // .height(Length::Units(300)); // Define la altura de la imagen
 
         let header = Column::new()
             .spacing(50)
             .width(Length::Fill)
             .align_items(Alignment::Start)
-            .push(image)
+            // .push(image)
             .push(content);
 
         container(header)
