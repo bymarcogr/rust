@@ -36,4 +36,6 @@ pub mod icons {
     pub const PREVIEW: char = '\u{E806}';
     pub const SAVE: char = '\u{E807}';
     pub const EXPORT: char = '\u{E808}';
+
+    pub const TAB_SPACE: &str = "   ";
 }

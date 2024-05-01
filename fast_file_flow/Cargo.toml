@@ -5,4 +5,5 @@ edition = "2021"
 
 [dependencies]
 iced = { version = "0.12.1", features = ["image","canvas"] } 
+iced_table = "0.12.0"
 image = "0.25.1"

@@ -5,8 +5,10 @@ pub use crate::general::constants;
 pub use crate::general::util;
 use crate::util::get_menu_button_by_text;
 use general::constants::english::{APP_TITLE, SEARCH_PLACEHOLDER};
+use general::constants::icons::TAB_SPACE;
 use general::constants::sizes::{APP_HEIGHT, APP_WIDTH};
 use general::util::get_menu_button;
+use iced_table::table;
 
 use iced::widget::{
     column, container, horizontal_space, row, text, text_input, Button, Column, Container, Row,
@@ -60,6 +62,16 @@ pub enum FastFileFlowMessage {
     MenuButtonClick(),
     RefreshButtonClick(),
     LoadFileButtonClick(),
+    FilterButtonClick(),
+    ProcessButtonClick(),
+    AddButtonClick(),
+    ScriptButtonClick(),
+    PipelineButtonClick(),
+    AnalysisButtonClick(),
+    AIButtonClick(),
+    PreviewButtonClick(),
+    SaveButtonClick(),
+    ExportButtonClick(),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -133,6 +145,46 @@ impl iced::Application for FastFileFlow {
                 self.clicked_button = String::from("Load File Button Clicked");
                 Command::none()
             }
+            FastFileFlowMessage::FilterButtonClick() => {
+                self.clicked_button = String::from("Filter Button Clicked");
+                Command::none()
+            }
+            FastFileFlowMessage::ProcessButtonClick() => {
+                self.clicked_button = String::from("Process Button Clicked");
+                Command::none()
+            }
+            FastFileFlowMessage::AddButtonClick() => {
+                self.clicked_button = String::from("Add Button Clicked");
+                Command::none()
+            }
+            FastFileFlowMessage::ScriptButtonClick() => {
+                self.clicked_button = String::from("Script Button Clicked");
+                Command::none()
+            }
+            FastFileFlowMessage::PipelineButtonClick() => {
+                self.clicked_button = String::from("Pipeline Button Clicked");
+                Command::none()
+            }
+            FastFileFlowMessage::AnalysisButtonClick() => {
+                self.clicked_button = String::from("Analysis Button Clicked");
+                Command::none()
+            }
+            FastFileFlowMessage::AIButtonClick() => {
+                self.clicked_button = String::from("AI Button Clicked");
+                Command::none()
+            }
+            FastFileFlowMessage::PreviewButtonClick() => {
+                self.clicked_button = String::from("Preview Button Clicked");
+                Command::none()
+            }
+            FastFileFlowMessage::SaveButtonClick() => {
+                self.clicked_button = String::from("Save Button Clicked");
+                Command::none()
+            }
+            FastFileFlowMessage::ExportButtonClick() => {
+                self.clicked_button = String::from("Export Button Clicked");
+                Command::none()
+            }
         }
     }
 
@@ -148,8 +200,9 @@ impl iced::Application for FastFileFlow {
 
         let (clicked_button, header) = self.build_header();
         let panels = self.build_panels().padding([10.0, 0.0, 0.0, 0.0]);
+        let action_menu = self.build_action_menu();
 
-        let content = column![header, panels, clicked_button, pages];
+        let content = column![header, panels, action_menu, clicked_button];
 
         let border = Border {
             color: Color::from_rgb(0.315, 0.315, 0.315).into(),
@@ -298,6 +351,82 @@ impl FastFileFlow {
             horizontal_space(),
             contenedor4
         ]
+    }
+
+    fn build_action_menu(&self) -> Row<FastFileFlowMessage, Theme, iced::Renderer> {
+        let button_filter = get_menu_button(
+            crate::general::constants::icons::FILTER,
+            FastFileFlowMessage::FilterButtonClick(),
+        );
+
+        let button_process = get_menu_button(
+            crate::general::constants::icons::PROCESS,
+            FastFileFlowMessage::ProcessButtonClick(),
+        );
+
+        let button_add = get_menu_button(
+            crate::general::constants::icons::ADD,
+            FastFileFlowMessage::AddButtonClick(),
+        );
+
+        let button_script = get_menu_button(
+            crate::general::constants::icons::SCRIPT,
+            FastFileFlowMessage::ScriptButtonClick(),
+        );
+
+        let button_pipeline = get_menu_button(
+            crate::general::constants::icons::PIPELINE,
+            FastFileFlowMessage::PipelineButtonClick(),
+        );
+
+        let button_analysis = get_menu_button(
+            crate::general::constants::icons::ANALYSIS,
+            FastFileFlowMessage::AnalysisButtonClick(),
+        );
+
+        let button_ai = get_menu_button(
+            crate::general::constants::icons::AI,
+            FastFileFlowMessage::AIButtonClick(),
+        );
+
+        let button_preview = get_menu_button(
+            crate::general::constants::icons::PREVIEW,
+            FastFileFlowMessage::PreviewButtonClick(),
+        );
+
+        let button_save = get_menu_button(
+            crate::general::constants::icons::SAVE,
+            FastFileFlowMessage::SaveButtonClick(),
+        );
+
+        let button_export = get_menu_button(
+            crate::general::constants::icons::EXPORT,
+            FastFileFlowMessage::ExportButtonClick(),
+        );
+        row![
+            button_filter,
+            TAB_SPACE,
+            button_process,
+            TAB_SPACE,
+            button_add,
+            TAB_SPACE,
+            button_script,
+            TAB_SPACE,
+            button_pipeline,
+            TAB_SPACE,
+            button_analysis,
+            TAB_SPACE,
+            button_ai,
+            TAB_SPACE,
+            button_preview,
+            TAB_SPACE,
+            button_save,
+            TAB_SPACE,
+            button_export,
+            TAB_SPACE,
+        ]
+        .padding([10.0, 50.0, 10.0, 0.0])
+        .into()
     }
 }
 
