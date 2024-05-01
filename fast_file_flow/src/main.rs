@@ -1,28 +1,23 @@
 mod general;
-
 pub use crate::general::util;
-
 use iced::widget::{
-    container, text, text_input, Button, Column, Container, Row, Scrollable, Space, Text, TextInput,
+    container, text, text_input, Button, Column, Container, Row, Text, TextInput,
 };
 use iced::{
-    border, color, window, Alignment, Application, Border, Color, Command, Element, Length,
-    Padding, Renderer, Settings, Size, Theme,
+    window,Command, Alignment, Application,  Element, Length, Padding, Theme,
 };
-// use iced::widget::image::Image;
-
 
 fn main() -> iced::Result {
-    let icon = util::get_icon();
     let settings = iced::Settings {
         window: iced::window::Settings {
-            size: iced::Size::new(1024.0, 768.0),
+            size: iced::Size::new(1366.0, 768.0),
             resizable: false,
             decorations: true,
             transparent: true,
             visible: true,
             level: window::Level::AlwaysOnTop,
-            icon: Some(icon),
+            icon: Some(util::get_icon()),
+            position: window::Position::Specific(iced::Point::new(0.0,0.0)),
             ..iced::window::Settings::default()
         },
         ..iced::Settings::default()
@@ -42,7 +37,6 @@ struct FastFileFlow {
 #[derive(Debug, Clone)]
 enum FastFileFlowMessage {
     Router(Page),
-    ChangeTheme(Theme),
     TextBoxChange(String),
 }
 
@@ -96,11 +90,6 @@ impl iced::Application for FastFileFlow {
                 }
                 Command::none()
             }
-
-            FastFileFlowMessage::ChangeTheme(theme) => {
-                self.theme = theme;
-                Command::none()
-            }
         }
     }
 
@@ -112,17 +101,14 @@ impl iced::Application for FastFileFlow {
                 FastFileFlowMessage::Router(Page::Configuration),
             ),
             Page::Configuration => config_page(FastFileFlowMessage::Router(Page::Main)),
-        };
-        // let image_handle = Handle::from_path("resources/logo.png");
-        // let image = Image::new(image_handle.clone())
-        // .width(Length::Units(400))  // Define el ancho de la imagen
-        // .height(Length::Units(300)); // Define la altura de la imagen
+        };     
 
+        let nt = Text::new("ICON CANNOT BE DISPLAYED");
         let header = Column::new()
             .spacing(50)
             .width(Length::Fill)
             .align_items(Alignment::Start)
-            // .push(image)
+            .push(nt)
             .push(content);
 
         container(header)
@@ -142,20 +128,21 @@ impl iced::Application for FastFileFlow {
 fn main_page(_value: &str, event: FastFileFlowMessage) -> Container<FastFileFlowMessage> {
     // //"Hello, world!".into()-
     let button = submit_btn("Cambiar", event);
-
+    let image = util::get_logo();
     let nt = Text::new("Hello iced");
+    let folder = util::get_full_directory();
     let text = Text::new(format!("Hello, {0}.", _value))
         .width(Length::Fill)
         .horizontal_alignment(iced::alignment::Horizontal::Center);
-    let row1 = Row::new().push(text);
+    let row1 = Row::new().push(text) .push(Text::new(folder));
     let text_input: TextInput<'_, FastFileFlowMessage> =
         text_input("world", _value).on_input(FastFileFlowMessage::TextBoxChange);
-    let row2 = Row::new().push(nt);
+    let row2 = Row::new().push(image).push(nt);
     let col = Column::new().push(row1).push(row2).push(text_input);
     let column = Column::new()
         .push(col)
         .push(Text::new("Hello iced 2"))
-        .push(button)
+        .push(button)       
         .padding(Padding::from([50, 20]))
         .align_items(Alignment::Start)
         .spacing(40);
@@ -165,9 +152,10 @@ fn main_page(_value: &str, event: FastFileFlowMessage) -> Container<FastFileFlow
 
 fn config_page(event: FastFileFlowMessage) -> Container<'static, FastFileFlowMessage> {
     let button = submit_btn("Back", event);
-
+    let image = util::get_logo();
     let column = Column::new()
         .push(Text::new("Hello iced 2"))
+        .push(image)
         .push(button)
         .padding(Padding::from([50, 20]))
         .align_items(Alignment::Start)

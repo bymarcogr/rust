@@ -1,6 +1,6 @@
 pub mod theme {
     use iced::{application,color, Border};
-    use iced::widget::{container};
+    use iced::widget::container;
 
     #[derive(Debug,Clone,Copy,Default)]
     pub struct Theme;
