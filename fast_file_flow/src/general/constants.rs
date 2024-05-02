@@ -1,9 +1,25 @@
 pub mod english {
     pub const APP_TITLE: &str = "Fast File Flow - Unir";
+    pub const APP_TOOLTIP: &str = "Fast File Flow - Fast Data Engineering Processes";
     pub const SEARCH_PLACEHOLDER: &str = "Search";
 
     pub const ERROR_LOAD_ICON: &str = "Failed to load icon";
     pub const ERROR_GET_FOLDER: &str = "Failed to get current folder";
+
+    pub const LOAD_ICON: &str = "Load";
+    pub const USER_ICON: &str = "User";
+    pub const MENU_ICON: &str = "Menu";
+    pub const REFRESH_ICON: &str = "Refresh";
+    pub const FILTER_ICON: &str = "Filter";
+    pub const PROCESS_ICON: &str = "Process";
+    pub const ADD_ICON: &str = "Add";
+    pub const SCRIPT_ICON: &str = "Script";
+    pub const ANALYSIS_ICON: &str = "Analysis";
+    pub const PIPELINE_ICON: &str = "Pipeline";
+    pub const AI_ICON: &str = "Artifitial Intelligence";
+    pub const PREVIEW_ICON: &str = "Preview";
+    pub const SAVE_ICON: &str = "Save";
+    pub const EXPORT_ICON: &str = "Export";
 }
 
 pub mod path {
@@ -13,12 +29,15 @@ pub mod path {
 }
 
 pub mod sizes {
+    pub const FONT_NAME: &str = "iced-fff";
+    pub const FONT_ICON_SIZE: u16 = 22;
     pub const APP_HEIGHT: f32 = 860.0;
     pub const APP_WIDTH: f32 = 1600.0;
     pub const MENU_BUTTON_HEIGHT: f32 = 40.0;
     pub const MENU_BUTTON_WIDTH: f32 = 40.0;
-    pub const PANEL_HEIGHT: f32 = 200.0;
+    pub const PANEL_HEIGHT: f32 = 170.0;
     pub const PANEL_WIDTH: f32 = 350.0;
+    pub const SEARCH_TEXTBOX_WIDTH: f32 = 300.0;
 }
 
 pub mod icons {

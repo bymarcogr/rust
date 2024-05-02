@@ -1,18 +1,23 @@
 mod general;
-use crate::constants::sizes::PANEL_HEIGHT;
-use crate::constants::sizes::PANEL_WIDTH;
+use crate::constants::english::{LOAD_ICON, REFRESH_ICON};
+use crate::constants::sizes::{PANEL_HEIGHT, PANEL_WIDTH};
 pub use crate::general::constants;
 pub use crate::general::util;
-use crate::util::get_menu_button_by_text;
-use general::constants::english::{APP_TITLE, SEARCH_PLACEHOLDER};
+use crate::util::{get_menu_button_by_text, get_text, wrap_tooltip};
+use general::constants::english::{
+    ADD_ICON, AI_ICON, ANALYSIS_ICON, APP_TITLE, APP_TOOLTIP, EXPORT_ICON, FILTER_ICON, MENU_ICON,
+    PIPELINE_ICON, PREVIEW_ICON, PROCESS_ICON, SAVE_ICON, SCRIPT_ICON, SEARCH_PLACEHOLDER,
+    USER_ICON,
+};
 use general::constants::icons::TAB_SPACE;
-use general::constants::sizes::{APP_HEIGHT, APP_WIDTH};
+use general::constants::sizes::{APP_HEIGHT, APP_WIDTH, FONT_NAME, SEARCH_TEXTBOX_WIDTH};
 use general::util::get_menu_button;
+use iced::font::Weight;
 use iced_table::table;
 
 use iced::widget::{
-    column, container, horizontal_space, row, text, text_input, Button, Column, Container, Row,
-    Text, TextInput,
+    column, container, horizontal_space, row, text, text_input, tooltip, Button, Column, Container,
+    Row, Text, TextInput,
 };
 use iced::Border;
 use iced::Color;
@@ -72,6 +77,7 @@ pub enum FastFileFlowMessage {
     PreviewButtonClick(),
     SaveButtonClick(),
     ExportButtonClick(),
+    SearchOnSubmit(),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -185,6 +191,10 @@ impl iced::Application for FastFileFlow {
                 self.clicked_button = String::from("Export Button Clicked");
                 Command::none()
             }
+            FastFileFlowMessage::SearchOnSubmit() => {
+                self.clicked_button = String::from("Search On Submit");
+                Command::none()
+            }
         }
     }
 
@@ -230,126 +240,176 @@ impl iced::Application for FastFileFlow {
 
 impl FastFileFlow {
     fn build_header(&self) -> (Text, Row<FastFileFlowMessage, Theme, iced::Renderer>) {
-        let image = util::get_logo(self.is_primary_logo);
+        let image = tooltip(
+            util::get_logo(self.is_primary_logo),
+            APP_TOOLTIP,
+            tooltip::Position::Right,
+        );
+
         let text_input: TextInput<'_, FastFileFlowMessage> =
             text_input(SEARCH_PLACEHOLDER, self.input_value.as_str())
                 .on_input(FastFileFlowMessage::TextBoxChange)
-                .width(Fixed(300.0))
+                .on_submit(FastFileFlowMessage::SearchOnSubmit())
+                .width(Fixed(SEARCH_TEXTBOX_WIDTH))
                 .padding(10)
                 .size(15)
                 .icon(text_input::Icon {
-                    font: Font::with_name("iced-fff"),
+                    font: Font::with_name(FONT_NAME),
                     code_point: '\u{E800}',
-                    size: Some(Pixels(20.0)),
+                    size: Some(Pixels(15.0)),
                     spacing: 10.0,
                     side: text_input::Side::Left,
                 });
         let button_user = get_menu_button(
             crate::general::constants::icons::USER,
             FastFileFlowMessage::UserButtonClick(),
+            USER_ICON,
         );
+
         let button_menu = get_menu_button(
             crate::general::constants::icons::MENU,
             FastFileFlowMessage::MenuButtonClick(),
+            MENU_ICON,
         );
-        let space = horizontal_space();
+
         let clicked_button = Text::new(self.clicked_button.as_str());
-        let header = row![image, space, text_input, button_user, button_menu];
+        let header = row![
+            image,
+            horizontal_space(),
+            text_input,
+            button_user,
+            TAB_SPACE,
+            button_menu
+        ];
         (clicked_button, header)
     }
 
     fn build_panels(&self) -> Row<FastFileFlowMessage, Theme, iced::Renderer> {
-        let border = Border {
-            color: Color::from_rgb(0.315, 0.315, 0.315).into(),
-            width: 1.0,
-            radius: 20.0.into(),
-            ..Default::default()
-        };
-
         let button_refresh = get_menu_button(
             crate::general::constants::icons::REFRESH,
             FastFileFlowMessage::RefreshButtonClick(),
+            REFRESH_ICON,
         );
-        let section_1 = column![
+        let panel_file = column![
             row!["File", horizontal_space(), button_refresh],
             row![
                 "File",
-                get_menu_button_by_text("Load", FastFileFlowMessage::LoadFileButtonClick())
+                get_menu_button_by_text(LOAD_ICON, FastFileFlowMessage::LoadFileButtonClick())
             ]
         ];
 
-        let contenedor = container(section_1)
-            .align_x(iced::alignment::Horizontal::Left)
-            .align_y(iced::alignment::Vertical::Top)
-            .width(PANEL_WIDTH)
-            .height(PANEL_HEIGHT)
-            .padding([10.0, 20.0, 0.0, 20.0])
-            .style(container::Appearance {
-                border,
-                ..Default::default()
-            });
+        let container_load_file = create_section_container(panel_file);
 
-        let section_2 = column![
-            row!["Filename", "Valor"],
-            row!["Filename", "Valor"],
-            row!["Filename", "Valor"],
-            row!["Filename", "Valor"],
-            row!["Filename", "Valor"]
+        let panel_file_details = column![
+            row![
+                get_text("Filename", false),
+                TAB_SPACE,
+                get_text("Value", true)
+            ],
+            row![
+                get_text("Encoding ", false),
+                TAB_SPACE,
+                get_text("Valor", true)
+            ],
+            row![
+                get_text("Size     ", false),
+                TAB_SPACE,
+                get_text("Valor", true)
+            ],
+            row![
+                get_text("Format   ", false),
+                TAB_SPACE,
+                get_text("Valor", true)
+            ],
+            row![
+                get_text("Sintaxis ", false),
+                TAB_SPACE,
+                get_text("Valor", true)
+            ]
         ];
-        let contenedor2 = container(section_2)
-            .align_x(iced::alignment::Horizontal::Left)
-            .align_y(iced::alignment::Vertical::Top)
-            .width(PANEL_WIDTH)
-            .height(PANEL_HEIGHT)
-            .padding([10.0, 20.0, 0.0, 20.0])
-            .style(container::Appearance {
-                border,
-                ..Default::default()
-            });
-        let section_3 = column![
-            row!["Filename", "Valor"],
-            row!["Filename", "Valor"],
-            row!["Filename", "Valor"],
-            row!["Filename", "Valor"],
-            row!["Filename", "Valor"]
-        ];
-        let contenedor3 = container(section_3)
-            .align_x(iced::alignment::Horizontal::Left)
-            .align_y(iced::alignment::Vertical::Top)
-            .height(PANEL_HEIGHT)
-            .width(PANEL_WIDTH)
-            .padding([10.0, 20.0, 0.0, 20.0])
-            .style(container::Appearance {
-                border,
-                ..Default::default()
-            });
+        let container_file_details = create_section_container(panel_file_details);
 
-        let section_4 = column![
-            row!["Filename", "Valor"],
-            row!["Filename", "Valor"],
-            row!["Filename", "Valor"],
-            row!["Filename", "Valor"],
-            row!["Filename", "Valor"]
+        let panel_column_analysis = column![
+            row![
+                get_text("Datatype", false),
+                get_text("Valor", true),
+                TAB_SPACE,
+                get_text("Mean", false),
+                get_text("Valor", true)
+            ],
+            row![
+                get_text("Distinct", false),
+                get_text("Valor", true),
+                TAB_SPACE,
+                get_text("Median", false),
+                get_text("Valor", true)
+            ],
+            row![
+                get_text("Repeated", false),
+                get_text("Valor", true),
+                TAB_SPACE,
+                get_text("Mode", false),
+                get_text("Valor", true)
+            ],
+            row![
+                get_text("Minimum", false),
+                get_text("Valor", true),
+                TAB_SPACE,
+                get_text("Range", false),
+                get_text("Valor", true)
+            ],
+            row![
+                get_text("Maximum", false),
+                get_text("Valor", true),
+                TAB_SPACE,
+                get_text("Variance", false),
+                get_text("Valor", true)
+            ],
+            row![
+                horizontal_space(),
+                horizontal_space(),
+                TAB_SPACE,
+                get_text("Quatril", false),
+                get_text("Valor", true)
+            ],
+            row![
+                horizontal_space(),
+                horizontal_space(),
+                TAB_SPACE,
+                get_text("Std Dev.", false),
+                get_text("Valor", true)
+            ],
         ];
-        let contenedor4 = container(section_4)
-            .align_x(iced::alignment::Horizontal::Left)
-            .align_y(iced::alignment::Vertical::Top)
-            .height(PANEL_HEIGHT)
-            .width(PANEL_WIDTH)
-            .padding([10.0, 20.0, 0.0, 20.0])
-            .style(container::Appearance {
-                border,
-                ..Default::default()
-            });
+        let container_analysis = create_section_container(panel_column_analysis);
+
+        let panel_coefficient = column![
+            row![
+                wrap_tooltip(
+                    get_text("Pearson CC", false).into(),
+                    "Pearson correlation coefficient"
+                ),
+                get_text("Valor", true)
+            ],
+            row![
+                wrap_tooltip(
+                    get_text("Spearman CC", false).into(),
+                    "Spearman correlation coefficient"
+                ),
+                get_text("Valor", true)
+            ],
+            row![get_text("Covariance", false), get_text("Valor", true)],
+            row!["Graph", TAB_SPACE, "Valor"]
+        ];
+        let container_correlation = create_section_container(panel_coefficient);
 
         row![
-            contenedor,
+            container_load_file,
             horizontal_space(),
-            contenedor2,
+            container_file_details,
             horizontal_space(),
-            contenedor3,
+            container_analysis,
             horizontal_space(),
-            contenedor4
+            container_correlation
         ]
     }
 
@@ -357,51 +417,61 @@ impl FastFileFlow {
         let button_filter = get_menu_button(
             crate::general::constants::icons::FILTER,
             FastFileFlowMessage::FilterButtonClick(),
+            FILTER_ICON,
         );
 
         let button_process = get_menu_button(
             crate::general::constants::icons::PROCESS,
             FastFileFlowMessage::ProcessButtonClick(),
+            PROCESS_ICON,
         );
 
         let button_add = get_menu_button(
             crate::general::constants::icons::ADD,
             FastFileFlowMessage::AddButtonClick(),
+            ADD_ICON,
         );
 
         let button_script = get_menu_button(
             crate::general::constants::icons::SCRIPT,
             FastFileFlowMessage::ScriptButtonClick(),
+            SCRIPT_ICON,
         );
 
         let button_pipeline = get_menu_button(
             crate::general::constants::icons::PIPELINE,
             FastFileFlowMessage::PipelineButtonClick(),
+            PIPELINE_ICON,
         );
 
         let button_analysis = get_menu_button(
             crate::general::constants::icons::ANALYSIS,
             FastFileFlowMessage::AnalysisButtonClick(),
+            ANALYSIS_ICON,
         );
 
         let button_ai = get_menu_button(
             crate::general::constants::icons::AI,
             FastFileFlowMessage::AIButtonClick(),
+            AI_ICON,
         );
 
         let button_preview = get_menu_button(
             crate::general::constants::icons::PREVIEW,
             FastFileFlowMessage::PreviewButtonClick(),
+            PREVIEW_ICON,
         );
 
         let button_save = get_menu_button(
             crate::general::constants::icons::SAVE,
             FastFileFlowMessage::SaveButtonClick(),
+            SAVE_ICON,
         );
 
         let button_export = get_menu_button(
             crate::general::constants::icons::EXPORT,
             FastFileFlowMessage::ExportButtonClick(),
+            EXPORT_ICON,
         );
         row![
             button_filter,
@@ -428,6 +498,28 @@ impl FastFileFlow {
         .padding([10.0, 50.0, 10.0, 0.0])
         .into()
     }
+}
+
+fn create_section_container(
+    section: Column<FastFileFlowMessage, Theme, iced::Renderer>,
+) -> Container<FastFileFlowMessage, Theme, iced::Renderer> {
+    let border = Border {
+        color: Color::from_rgb(0.315, 0.315, 0.315).into(),
+        width: 1.0,
+        radius: 20.0.into(),
+        ..Default::default()
+    };
+
+    container(section)
+        .align_x(iced::alignment::Horizontal::Left)
+        .align_y(iced::alignment::Vertical::Top)
+        .width(PANEL_WIDTH)
+        .height(PANEL_HEIGHT)
+        .padding([10.0, 20.0, 0.0, 20.0])
+        .style(container::Appearance {
+            border,
+            ..Default::default()
+        })
 }
 
 fn main_page(

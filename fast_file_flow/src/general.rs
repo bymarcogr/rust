@@ -1,14 +1,17 @@
 pub mod constants;
 pub mod util {
+    use iced::font::Weight;
     use iced::widget::image::{Handle, Image};
-    use iced::widget::{button, text, Button};
+    use iced::widget::{button, text, tooltip, Text};
     use iced::window::{icon::Error, Icon};
-    use iced::Length::Fixed;
+    use iced::Length::{self, Fixed};
     use iced::{Element, Font};
 
     use super::constants::english::{ERROR_GET_FOLDER, ERROR_LOAD_ICON};
     use super::constants::path::{LOGO_PRIMARY_PATH, LOGO_SECONDARY_PATH};
-    use crate::constants::sizes::{MENU_BUTTON_HEIGHT, MENU_BUTTON_WIDTH};
+    use crate::constants::sizes::{
+        FONT_ICON_SIZE, FONT_NAME, MENU_BUTTON_HEIGHT, MENU_BUTTON_WIDTH,
+    };
     use crate::FastFileFlowMessage;
 
     fn get_icon_from_file() -> Result<Icon, Error> {
@@ -52,31 +55,64 @@ pub mod util {
     }
 
     pub fn get_icon_font<'a>(codepoint: char) -> Element<'a, FastFileFlowMessage> {
-        const ICON_FONT: Font = Font::with_name("iced-fff");
+        const ICON_FONT: Font = Font::with_name(FONT_NAME);
         text(codepoint)
             .font(ICON_FONT)
             .horizontal_alignment(iced::alignment::Horizontal::Center)
             .vertical_alignment(iced::alignment::Vertical::Center)
+            .size(FONT_ICON_SIZE)
             .into()
     }
 
     pub fn get_menu_button(
         _codepoint: char,
         on_press_event: FastFileFlowMessage,
-    ) -> Button<'static, FastFileFlowMessage> {
-        button(get_icon_font(_codepoint))
-            .width(MENU_BUTTON_WIDTH)
-            .height(MENU_BUTTON_HEIGHT)
-            .on_press(on_press_event)
+        tooltip_text: &'static str,
+    ) -> Element<'static, FastFileFlowMessage> {
+        wrap_tooltip(
+            button(get_icon_font(_codepoint))
+                .width(MENU_BUTTON_WIDTH)
+                .height(MENU_BUTTON_HEIGHT)
+                .on_press(on_press_event)
+                .into(),
+            tooltip_text,
+        )
+        .into()
+    }
+
+    pub fn wrap_tooltip(
+        element: Element<'static, FastFileFlowMessage>,
+        tooltip_text: &'static str,
+    ) -> Element<'static, FastFileFlowMessage> {
+        tooltip(element, tooltip_text, tooltip::Position::Bottom).into()
     }
 
     pub fn get_menu_button_by_text(
-        label: &str,
+        label: &'static str,
         on_press_event: FastFileFlowMessage,
-    ) -> Button<'static, FastFileFlowMessage> {
-        button(text(label))
-            .width(MENU_BUTTON_WIDTH)
-            .height(MENU_BUTTON_HEIGHT)
-            .on_press(on_press_event)
+    ) -> Element<'static, FastFileFlowMessage> {
+        wrap_tooltip(
+            button(text(label))
+                //.width(MENU_BUTTON_WIDTH)
+                .height(MENU_BUTTON_HEIGHT)
+                .on_press(on_press_event)
+                .into(),
+            label,
+        )
+        .into()
+    }
+
+    pub fn get_text(input: &str, is_bold: bool) -> Text {
+        text(input)
+            .size(14)
+            .font(Font {
+                weight: if is_bold {
+                    Weight::Bold
+                } else {
+                    Weight::Normal
+                },
+                ..Default::default()
+            })
+            .width(Length::Fill)
     }
 }
