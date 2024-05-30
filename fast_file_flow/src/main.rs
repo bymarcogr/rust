@@ -12,12 +12,11 @@ use general::constants::english::{
 use general::constants::icons::TAB_SPACE;
 use general::constants::sizes::{APP_HEIGHT, APP_WIDTH, FONT_NAME, SEARCH_TEXTBOX_WIDTH};
 use general::util::get_menu_button;
-use iced::font::Weight;
 use iced_table::table;
 
 use iced::widget::{
-    column, container, horizontal_space, row, text, text_input, tooltip, Button, Column, Container,
-    Row, Text, TextInput,
+    column, container, horizontal_space, responsive, row, scrollable, text, text_input, tooltip,
+    Button, Column, Container, Row, Text, TextInput,
 };
 use iced::Border;
 use iced::Color;
@@ -56,6 +55,11 @@ struct FastFileFlow {
     input_value: String,
     is_primary_logo: bool,
     clicked_button: String,
+    header: scrollable::Id,
+    body: scrollable::Id,
+    footer: scrollable::Id,
+    columns: Vec<ColumnTable>,
+    rows: Vec<RowTable>,
 }
 
 // Mensajes para la actualización de la GUI
@@ -78,6 +82,9 @@ pub enum FastFileFlowMessage {
     SaveButtonClick(),
     ExportButtonClick(),
     SearchOnSubmit(),
+    SyncHeader(scrollable::AbsoluteOffset),
+    Resizing(usize, f32),
+    Resized,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -101,6 +108,17 @@ impl iced::Application for FastFileFlow {
                 input_value: String::from(""),
                 is_primary_logo: false,
                 clicked_button: String::from(""),
+                header: scrollable::Id::unique(),
+                body: scrollable::Id::unique(),
+                footer: scrollable::Id::unique(),
+                columns: vec![
+                    ColumnTable::new(ColumnKind::Index),
+                    ColumnTable::new(ColumnKind::Category),
+                    ColumnTable::new(ColumnKind::Enabled),
+                    ColumnTable::new(ColumnKind::Notes),
+                    ColumnTable::new(ColumnKind::Delete),
+                ],
+                rows: (0..50).map(RowTable::generate).collect(),
             },
             Command::none(),
         )
@@ -195,6 +213,26 @@ impl iced::Application for FastFileFlow {
                 self.clicked_button = String::from("Search On Submit");
                 Command::none()
             }
+            FastFileFlowMessage::SyncHeader(offset) => {
+                return Command::batch(vec![
+                    scrollable::scroll_to(self.header.clone(), offset),
+                    scrollable::scroll_to(self.footer.clone(), offset),
+                ])
+            }
+            FastFileFlowMessage::Resizing(index, offset) => {
+                if let Some(column) = self.columns.get_mut(index) {
+                    column.resize_offset = Some(offset);
+                }
+                Command::none()
+            }
+            FastFileFlowMessage::Resized => {
+                self.columns.iter_mut().for_each(|column| {
+                    if let Some(offset) = column.resize_offset.take() {
+                        column.width += offset;
+                    }
+                });
+                Command::none()
+            }
         }
     }
 
@@ -211,8 +249,9 @@ impl iced::Application for FastFileFlow {
         let (clicked_button, header) = self.build_header();
         let panels = self.build_panels().padding([10.0, 0.0, 0.0, 0.0]);
         let action_menu = self.build_action_menu();
+        let table = self.build_table();
 
-        let content = column![header, panels, action_menu, clicked_button];
+        let content = column![header, panels, action_menu, clicked_button, table];
 
         let border = Border {
             color: Color::from_rgb(0.315, 0.315, 0.315).into(),
@@ -498,6 +537,33 @@ impl FastFileFlow {
         .padding([10.0, 50.0, 10.0, 0.0])
         .into()
     }
+
+    fn build_table(&self) -> Row<FastFileFlowMessage, Theme, iced::Renderer> {
+        let table = responsive(|size| {
+            let mut table = table(
+                self.header.clone(),
+                self.body.clone(),
+                &self.columns,
+                &self.rows,
+                FastFileFlowMessage::SyncHeader,
+            );
+
+            // if self.resize_columns_enabled {
+            table =
+                table.on_column_resize(FastFileFlowMessage::Resizing, FastFileFlowMessage::Resized);
+            // }
+            // if self.footer_enabled {
+            table = table.footer(self.footer.clone());
+            // }
+            // if self.min_width_enabled {
+            table = table.min_width(size.width);
+            // }
+
+            table.into()
+        });
+
+        row![table]
+    }
 }
 
 fn create_section_container(
@@ -577,4 +643,132 @@ fn submit_btn(name: &str, event: FastFileFlowMessage) -> Button<FastFileFlowMess
     .width(Length::Fixed(100.0))
     .height(Length::Fixed(60.0))
     .style(iced::theme::Button::Primary)
+}
+
+struct RowTable {
+    notes: String,
+    category: Category,
+    is_enabled: bool,
+}
+
+impl RowTable {
+    fn generate(index: usize) -> Self {
+        let category = match index % 5 {
+            0 => Category::A,
+            1 => Category::B,
+            2 => Category::C,
+            3 => Category::D,
+            4 => Category::E,
+            _ => unreachable!(),
+        };
+        let is_enabled = true;
+
+        Self {
+            notes: String::new(),
+            category,
+            is_enabled,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Category {
+    A,
+    B,
+    C,
+    D,
+    E,
+}
+
+struct ColumnTable {
+    kind: ColumnKind,
+    width: f32,
+    resize_offset: Option<f32>,
+}
+
+impl ColumnTable {
+    fn new(kind: ColumnKind) -> Self {
+        let width = match kind {
+            ColumnKind::Index => 60.0,
+            ColumnKind::Category => 100.0,
+            ColumnKind::Enabled => 155.0,
+            ColumnKind::Notes => 400.0,
+            ColumnKind::Delete => 100.0,
+        };
+
+        Self {
+            kind,
+            width,
+            resize_offset: None,
+        }
+    }
+}
+
+enum ColumnKind {
+    Index,
+    Category,
+    Enabled,
+    Notes,
+    Delete,
+}
+
+impl<'a> table::Column<'a, FastFileFlowMessage, Theme, iced::Renderer> for ColumnTable {
+    type Row = RowTable;
+
+    fn header(&'a self, _col_index: usize) -> Element<'a, FastFileFlowMessage> {
+        let content = match self.kind {
+            ColumnKind::Index => "Index",
+            ColumnKind::Category => "Category",
+            ColumnKind::Enabled => "Enabled",
+            ColumnKind::Notes => "Notes",
+            ColumnKind::Delete => "Delete",
+        };
+
+        container(text(content)).height(24).center_y().into()
+    }
+
+    fn cell(
+        &'a self,
+        _col_index: usize,
+        row_index: usize,
+        row: &'a Self::Row,
+    ) -> Element<'a, FastFileFlowMessage> {
+        let content: Element<_> = match self.kind {
+            ColumnKind::Index => text(row_index).into(),
+            ColumnKind::Category => text(row_index).into(),
+            ColumnKind::Enabled => text(row_index).into(),
+            ColumnKind::Notes => text(row_index).into(),
+            ColumnKind::Delete => text(row_index).into(),
+        };
+
+        container(content)
+            .width(Length::Fill)
+            .height(32)
+            .center_y()
+            .into()
+    }
+
+    fn footer(
+        &'a self,
+        _col_index: usize,
+        rows: &'a [Self::Row],
+    ) -> Option<Element<'a, FastFileFlowMessage>> {
+        let content = if matches!(self.kind, ColumnKind::Enabled) {
+            let total_enabled = rows.iter().filter(|row| row.is_enabled).count();
+
+            Element::from(text(format!("Total Enabled: {total_enabled}")))
+        } else {
+            horizontal_space().into()
+        };
+
+        Some(container(content).height(24).center_y().into())
+    }
+
+    fn width(&self) -> f32 {
+        self.width
+    }
+
+    fn resize_offset(&self) -> Option<f32> {
+        self.resize_offset
+    }
 }

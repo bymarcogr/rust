@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-iced = { version = "0.12.1", features = ["image","canvas"] } 
+iced = { version = "0.12.1", features = ["image","canvas","lazy"] } 
 iced_table = "0.12.0"
+iced_widget = "0.12"
 image = "0.25.1"
