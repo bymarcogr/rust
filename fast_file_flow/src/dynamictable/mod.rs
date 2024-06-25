@@ -25,7 +25,7 @@ impl RowTable {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum Category {
+pub enum Category {
     A,
     B,
     C,

@@ -1,28 +1,20 @@
-use crate::constants::english::{
-    ADD_ICON, AI_ICON, ANALYSIS_ICON, APP_TITLE, APP_TOOLTIP, EXPORT_ICON, FILTER_ICON, MENU_ICON,
-    PIPELINE_ICON, PREVIEW_ICON, PROCESS_ICON, SAVE_ICON, SCRIPT_ICON, SEARCH_PLACEHOLDER,
-    USER_ICON,
-};
-use crate::constants::english::{LOAD_ICON, REFRESH_ICON};
-use crate::constants::icons::TAB_SPACE;
-use crate::constants::sizes::{FONT_NAME, SEARCH_TEXTBOX_WIDTH};
-use crate::constants::sizes::{PANEL_HEIGHT, PANEL_WIDTH};
-use crate::constants::{self, icons};
+use crate::constants::english::*;
+use crate::constants::icons::*;
+use crate::constants::sizes::{FONT_NAME, PANEL_HEIGHT, PANEL_WIDTH, SEARCH_TEXTBOX_WIDTH};
 use crate::dynamictable::{ColumnTable, RowTable};
-use crate::util::{get_full_directory, get_logo, get_menu_button_by_text, get_text, wrap_tooltip};
+use crate::util::{
+    get_full_directory, get_logo, get_menu_button, get_menu_button_by_text, get_text, wrap_tooltip,
+};
 
-use crate::util::get_menu_button;
 use iced_table::table;
 
 use iced::widget::{
     column, container, horizontal_space, responsive, row, scrollable, text, text_input, tooltip,
     Button, Column, Container, Row, Text, TextInput,
 };
-use iced::Border;
-use iced::Color;
-use iced::Length::Fixed;
 
-use iced::{Alignment, Command, Element, Font, Length, Padding, Pixels, Theme};
+use iced::Length::Fixed;
+use iced::{Alignment, Border, Color, Command, Element, Font, Length, Padding, Pixels, Theme};
 
 pub struct FastFileFlow {
     page: Page,
@@ -276,17 +268,9 @@ impl FastFileFlow {
                     spacing: 10.0,
                     side: text_input::Side::Left,
                 });
-        let button_user = get_menu_button(
-            constants::icons::USER,
-            FastFileFlowMessage::UserButtonClick(),
-            USER_ICON,
-        );
+        let button_user = get_menu_button(USER, FastFileFlowMessage::UserButtonClick(), USER_ICON);
 
-        let button_menu = get_menu_button(
-            constants::icons::MENU,
-            FastFileFlowMessage::MenuButtonClick(),
-            MENU_ICON,
-        );
+        let button_menu = get_menu_button(MENU, FastFileFlowMessage::MenuButtonClick(), MENU_ICON);
 
         let clicked_button = Text::new(self.clicked_button.as_str());
         let header = row![
@@ -302,7 +286,7 @@ impl FastFileFlow {
 
     fn build_panels(&self) -> Row<FastFileFlowMessage, Theme, iced::Renderer> {
         let button_refresh = get_menu_button(
-            icons::REFRESH,
+            REFRESH,
             FastFileFlowMessage::RefreshButtonClick(),
             REFRESH_ICON,
         );
@@ -431,61 +415,49 @@ impl FastFileFlow {
 
     fn build_action_menu(&self) -> Row<FastFileFlowMessage, Theme, iced::Renderer> {
         let button_filter = get_menu_button(
-            icons::FILTER,
+            FILTER,
             FastFileFlowMessage::FilterButtonClick(),
             FILTER_ICON,
         );
 
         let button_process = get_menu_button(
-            constants::icons::PROCESS,
+            PROCESS,
             FastFileFlowMessage::ProcessButtonClick(),
             PROCESS_ICON,
         );
 
-        let button_add = get_menu_button(
-            constants::icons::ADD,
-            FastFileFlowMessage::AddButtonClick(),
-            ADD_ICON,
-        );
+        let button_add = get_menu_button(ADD, FastFileFlowMessage::AddButtonClick(), ADD_ICON);
 
         let button_script = get_menu_button(
-            constants::icons::SCRIPT,
+            SCRIPT,
             FastFileFlowMessage::ScriptButtonClick(),
             SCRIPT_ICON,
         );
 
         let button_pipeline = get_menu_button(
-            constants::icons::PIPELINE,
+            PIPELINE,
             FastFileFlowMessage::PipelineButtonClick(),
             PIPELINE_ICON,
         );
 
         let button_analysis = get_menu_button(
-            constants::icons::ANALYSIS,
+            ANALYSIS,
             FastFileFlowMessage::AnalysisButtonClick(),
             ANALYSIS_ICON,
         );
 
-        let button_ai = get_menu_button(
-            constants::icons::AI,
-            FastFileFlowMessage::AIButtonClick(),
-            AI_ICON,
-        );
+        let button_ai = get_menu_button(AI, FastFileFlowMessage::AIButtonClick(), AI_ICON);
 
         let button_preview = get_menu_button(
-            crate::constants::icons::PREVIEW,
+            PREVIEW,
             FastFileFlowMessage::PreviewButtonClick(),
             PREVIEW_ICON,
         );
 
-        let button_save = get_menu_button(
-            crate::constants::icons::SAVE,
-            FastFileFlowMessage::SaveButtonClick(),
-            SAVE_ICON,
-        );
+        let button_save = get_menu_button(SAVE, FastFileFlowMessage::SaveButtonClick(), SAVE_ICON);
 
         let button_export = get_menu_button(
-            crate::constants::icons::EXPORT,
+            EXPORT,
             FastFileFlowMessage::ExportButtonClick(),
             EXPORT_ICON,
         );
@@ -634,10 +606,10 @@ impl<'a> table::Column<'a, FastFileFlowMessage, Theme, iced::Renderer> for Colum
     fn cell(
         &'a self,
         _col_index: usize,
-        row_index: usize,
-        row: &'a Self::Row,
+        _row_index: usize,
+        _row: &'a Self::Row,
     ) -> Element<'a, FastFileFlowMessage> {
-        let content: Element<_> = text(row_index).into();
+        let content: Element<_> = text(_row_index).into();
 
         container(content)
             .width(Length::Fill)
