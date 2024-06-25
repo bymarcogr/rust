@@ -5,8 +5,8 @@ use fast_file_flow::{
 };
 
 use iced::{window, Application};
-
-fn main() -> iced::Result {
+#[tokio::main]
+async fn main() -> iced::Result {
     let settings = iced::Settings {
         fonts: vec![include_bytes!("resources/fonts/iced-fff.ttf")
             .as_slice()

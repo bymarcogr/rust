@@ -1,3 +1,5 @@
+use std::borrow::BorrowMut;
+
 use crate::constants::english::*;
 use crate::constants::icons::*;
 use crate::constants::sizes::{FONT_NAME, PANEL_HEIGHT, PANEL_WIDTH, SEARCH_TEXTBOX_WIDTH};
@@ -146,8 +148,9 @@ impl iced::Application for FastFileFlow {
                 let path = crate::dialog::load_csv();
 
                 if path != "" {
-                    self.file_loaded = path;
-                    // Load File
+                    self.file_loaded = path.clone();
+
+                    _ = crate::dialog::read_csv(path, 8);
                 }
 
                 Command::none()
@@ -346,6 +349,12 @@ impl FastFileFlow {
             ],
             row![
                 get_text("Sintaxis ", false),
+                TAB_SPACE,
+                get_text("Valor", true)
+            ],
+            row![get_text("Rows ", false), TAB_SPACE, get_text("Valor", true)],
+            row![
+                get_text("Columns ", false),
                 TAB_SPACE,
                 get_text("Valor", true)
             ]

@@ -4,8 +4,10 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+csv = "1.3.0"
 iced = { version = "0.12.1", features = ["image","canvas","lazy"] } 
 iced_table = "0.12.0"
 iced_widget = "0.12"
 image = "0.25.1"
 native-dialog = "0.7.0"
+tokio = { version = "1.38.0", features = ["full"] }
