@@ -27,6 +27,7 @@ pub struct FastFileFlow {
     footer: scrollable::Id,
     columns: Vec<ColumnTable>,
     rows: Vec<RowTable>,
+    file_loaded: String,
 }
 
 // Mensajes para la actualización de la GUI
@@ -88,6 +89,7 @@ impl iced::Application for FastFileFlow {
                     ColumnTable::new("Column 7".to_string()),
                 ],
                 rows: (0..50).map(RowTable::generate).collect(),
+                file_loaded: String::from(""),
             },
             Command::none(),
         )
@@ -131,11 +133,23 @@ impl iced::Application for FastFileFlow {
                 Command::none()
             }
             FastFileFlowMessage::RefreshButtonClick() => {
-                self.clicked_button = String::from("Refresh Button Clicked");
+                if self.file_loaded != "" {
+                    self.clicked_button = String::from(self.file_loaded.clone());
+                    // Load File
+                }
+
                 Command::none()
             }
             FastFileFlowMessage::LoadFileButtonClick() => {
                 self.clicked_button = String::from("Load File Button Clicked");
+
+                let path = crate::dialog::load_csv();
+
+                if path != "" {
+                    self.file_loaded = path;
+                    // Load File
+                }
+
                 Command::none()
             }
             FastFileFlowMessage::FilterButtonClick() => {
@@ -290,12 +304,21 @@ impl FastFileFlow {
             FastFileFlowMessage::RefreshButtonClick(),
             REFRESH_ICON,
         );
+        let button_open =
+            get_menu_button(OPEN, FastFileFlowMessage::LoadFileButtonClick(), OPEN_ICON);
+        let selected_file = Text::new(self.file_loaded.as_str())
+            .width(PANEL_WIDTH)
+            .size(Pixels(10.0));
         let panel_file = column![
-            row!["File", horizontal_space(), button_refresh],
             row![
                 "File",
-                get_menu_button_by_text(LOAD_ICON, FastFileFlowMessage::LoadFileButtonClick())
-            ]
+                horizontal_space(),
+                button_open,
+                TAB_SPACE,
+                button_refresh
+            ],
+            row![TAB_SPACE],
+            row![selected_file],
         ];
 
         let container_load_file = create_section_container(panel_file);

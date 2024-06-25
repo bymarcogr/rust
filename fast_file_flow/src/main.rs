@@ -17,7 +17,7 @@ fn main() -> iced::Result {
             decorations: true,
             transparent: true,
             visible: true,
-            level: window::Level::AlwaysOnTop,
+            level: window::Level::Normal,
             icon: Some(util::get_icon_image()),
             position: window::Position::Specific(iced::Point::new(0.0, 0.0)),
             ..iced::window::Settings::default()

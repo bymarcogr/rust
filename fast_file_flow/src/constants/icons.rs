@@ -12,5 +12,6 @@ pub const AI: char = '\u{F0D0}';
 pub const PREVIEW: char = '\u{E806}';
 pub const SAVE: char = '\u{E807}';
 pub const EXPORT: char = '\u{E808}';
+pub const OPEN: char = '\u{F115}';
 
 pub const TAB_SPACE: &str = "   ";
