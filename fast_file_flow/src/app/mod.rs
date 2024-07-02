@@ -18,6 +18,7 @@ use iced::widget::{
 
 use iced::Length::Fixed;
 use iced::{Alignment, Border, Color, Command, Element, Font, Length, Padding, Pixels, Theme};
+use num_format::{Locale, ToFormattedString};
 
 pub struct FastFileFlow {
     page: Page,
@@ -138,31 +139,16 @@ impl iced::Application for FastFileFlow {
                 Command::none()
             }
             FastFileFlowMessage::RefreshButtonClick() => {
-                if self.file_loaded != "" {
-                    self.clicked_button = String::from(self.file_loaded.clone());
-                    self.selected_file = StoredFile::new(String::from(&self.file_loaded));
-                    // Load File
-                }
+                let path = String::from(self.file_loaded.clone());
+
+                self.load_stored_file(path);
 
                 Command::none()
             }
             FastFileFlowMessage::LoadFileButtonClick() => {
-                self.clicked_button = String::from("Load File Button Clicked");
-
                 let path = crate::dialog::load_csv();
 
-                if path != "" {
-                    self.file_loaded = path.clone();
-                    async_std::task::block_on(async {
-                        if let Err(err) = crate::dialog::open_file_async(&path).await {
-                            eprintln!("error running filter_by_region: {}", err);
-                            std::process::exit(1);
-                        }
-                    });
-                    async_std::task::block_on(async {
-                        self.selected_file = StoredFile::new(String::from(path));
-                    });
-                }
+                self.load_stored_file(path);
 
                 Command::none()
             }
@@ -339,37 +325,56 @@ impl FastFileFlow {
 
         let panel_file_details = column![
             row![
-                get_text("Filename", false),
-                TAB_SPACE,
-                get_text(self.selected_file.file_name.as_str(), true)
+                get_text("Filename:", false),
+                get_text(self.selected_file.file_name.as_str(), true).size(Pixels(9.0))
             ],
             row![
-                get_text("Encoding ", false),
-                TAB_SPACE,
-                get_text("Valor", true)
+                get_text("Encoding:", false),
+                get_text(self.selected_file.encoding.as_str(), true)
             ],
             row![
-                get_text("Size     ", false),
-                TAB_SPACE,
-                get_text(self.selected_file.size_as_str(), true)
+                get_text("Size:", false),
+                get_text(self.selected_file.size_mb_as_str(), true)
             ],
             row![
-                get_text("Format   ", false),
-                TAB_SPACE,
-                get_text("Valor", true)
+                get_text("Format:", false),
+                get_text(self.selected_file.format.as_str(), true)
             ],
             row![
-                get_text("Sintaxis ", false),
-                TAB_SPACE,
-                get_text("Valor", true)
+                get_text("Sintaxis:", false),
+                get_text(
+                    format!("{}", self.selected_file.sintaxis.to_string()).as_str(),
+                    true
+                )
             ],
-            row![get_text("Rows ", false), TAB_SPACE, get_text("Valor", true)],
             row![
-                get_text("Columns ", false),
-                TAB_SPACE,
-                get_text("Valor", true)
+                get_text("Rows:", false),
+                get_text(
+                    format!(
+                        "{}",
+                        self.selected_file
+                            .rows_counter
+                            .to_formatted_string(&Locale::en)
+                    )
+                    .as_str(),
+                    true
+                )
+            ],
+            row![
+                get_text("Columns:", false),
+                get_text(
+                    format!(
+                        "{}",
+                        self.selected_file
+                            .columns_counter
+                            .to_formatted_string(&Locale::en)
+                    )
+                    .as_str(),
+                    true
+                )
             ]
         ];
+
         let container_file_details = create_section_container(panel_file_details);
 
         let panel_column_analysis = column![
@@ -555,6 +560,20 @@ impl FastFileFlow {
         });
 
         row![table]
+    }
+
+    fn load_stored_file(&mut self, path: String) {
+        if path != "" {
+            self.file_loaded = path.clone();
+            async_std::task::block_on(async {
+                // if let Err(err) = crate::dialog::open_file_async(&path).await {
+                //     eprintln!("error running filter_by_region: {}", err);
+                //     std::process::exit(1);
+                // }
+
+                self.selected_file = StoredFile::new(String::from(path)).await;
+            });
+        }
     }
 }
 

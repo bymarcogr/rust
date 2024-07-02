@@ -97,16 +97,17 @@ pub async fn open_file_async(file_in: &str) -> Result<(), Box<dyn Error>> {
 
     let mut counter: u32 = 0;
     while let Some(record) = records.next().await {
-        // if counter == 100 {
-        //     return Ok(());
-        // }
+        if counter == 100 {
+            return Ok(());
+        }
         counter = counter + 1;
         let record = record?;
         wri.write_record(
-            record
-                .iter()
-                .enumerate() //.filter(|(i, _)| *i != 1)
-                .map(|(_, s)| s),
+            // record
+            //     .iter()
+            //     .enumerate() //.filter(|(i, _)| *i != 1)
+            //     .map(|(_, s)| s),
+            &record,
         )
         .await?;
     }

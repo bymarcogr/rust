@@ -114,8 +114,8 @@ pub fn get_menu_button_by_text(
 // }
 
 pub fn get_text<T: Into<String>>(input: T, is_bold: bool) -> Text<'static> {
-    let input_string = input.into();
-    text(input_string)
+    let input_string: String = input.into();
+    Text::new(input_string)
         .size(14)
         .font(Font {
             weight: if is_bold {
