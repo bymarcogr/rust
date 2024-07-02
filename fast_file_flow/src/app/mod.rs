@@ -4,6 +4,7 @@ use crate::constants::english::*;
 use crate::constants::icons::*;
 use crate::constants::sizes::{FONT_NAME, PANEL_HEIGHT, PANEL_WIDTH, SEARCH_TEXTBOX_WIDTH};
 use crate::dynamictable::{ColumnTable, RowTable};
+use crate::stored_file::StoredFile;
 use crate::util::{
     get_full_directory, get_logo, get_menu_button, get_menu_button_by_text, get_text, wrap_tooltip,
 };
@@ -24,6 +25,7 @@ pub struct FastFileFlow {
     input_value: String,
     is_primary_logo: bool,
     clicked_button: String,
+    selected_file: StoredFile,
     header: scrollable::Id,
     body: scrollable::Id,
     footer: scrollable::Id,
@@ -78,6 +80,7 @@ impl iced::Application for FastFileFlow {
                 input_value: String::from(""),
                 is_primary_logo: false,
                 clicked_button: String::from(""),
+                selected_file: StoredFile::default(),
                 header: scrollable::Id::unique(),
                 body: scrollable::Id::unique(),
                 footer: scrollable::Id::unique(),
@@ -137,6 +140,7 @@ impl iced::Application for FastFileFlow {
             FastFileFlowMessage::RefreshButtonClick() => {
                 if self.file_loaded != "" {
                     self.clicked_button = String::from(self.file_loaded.clone());
+                    self.selected_file = StoredFile::new(String::from(&self.file_loaded));
                     // Load File
                 }
 
@@ -149,16 +153,14 @@ impl iced::Application for FastFileFlow {
 
                 if path != "" {
                     self.file_loaded = path.clone();
-
-                    // _ = crate::dialog::read_csv(path, 8);
                     async_std::task::block_on(async {
-                        if let Err(err) =
-                            crate::dialog::open_file_async(path.as_str(), "c:/tmp/MA_only.csv")
-                                .await
-                        {
+                        if let Err(err) = crate::dialog::open_file_async(&path).await {
                             eprintln!("error running filter_by_region: {}", err);
                             std::process::exit(1);
                         }
+                    });
+                    async_std::task::block_on(async {
+                        self.selected_file = StoredFile::new(String::from(path));
                     });
                 }
 
@@ -339,7 +341,7 @@ impl FastFileFlow {
             row![
                 get_text("Filename", false),
                 TAB_SPACE,
-                get_text("Value", true)
+                get_text(self.selected_file.file_name.as_str(), true)
             ],
             row![
                 get_text("Encoding ", false),
@@ -349,7 +351,7 @@ impl FastFileFlow {
             row![
                 get_text("Size     ", false),
                 TAB_SPACE,
-                get_text("Valor", true)
+                get_text(self.selected_file.size_as_str(), true)
             ],
             row![
                 get_text("Format   ", false),

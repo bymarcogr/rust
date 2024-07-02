@@ -20,3 +20,5 @@ pub const PREVIEW_ICON: &str = "Preview";
 pub const SAVE_ICON: &str = "Save";
 pub const EXPORT_ICON: &str = "Export";
 pub const OPEN_ICON: &str = "Open";
+
+pub const PROCESSED_FILENAME: &str = "processed";

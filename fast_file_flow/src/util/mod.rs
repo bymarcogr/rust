@@ -4,9 +4,10 @@ use iced::widget::{button, text, tooltip, Text};
 use iced::window::{icon::Error, Icon};
 use iced::Length::{self, Fixed};
 use iced::{Element, Font};
+use std::path::{Path, PathBuf};
 
 use crate::app::FastFileFlowMessage;
-use crate::constants::english::{ERROR_GET_FOLDER, ERROR_LOAD_ICON};
+use crate::constants::english::{ERROR_GET_FOLDER, ERROR_LOAD_ICON, PROCESSED_FILENAME};
 use crate::constants::path::{LOGO_PRIMARY_PATH, LOGO_SECONDARY_PATH};
 use crate::constants::sizes::{FONT_ICON_SIZE, FONT_NAME, MENU_BUTTON_HEIGHT, MENU_BUTTON_WIDTH};
 
@@ -98,8 +99,23 @@ pub fn get_menu_button_by_text(
     .into()
 }
 
-pub fn get_text(input: &str, is_bold: bool) -> Text {
-    text(input)
+// pub fn get_text(input: &str, is_bold: bool) -> Text {
+//     text(input)
+//         .size(14)
+//         .font(Font {
+//             weight: if is_bold {
+//                 Weight::Bold
+//             } else {
+//                 Weight::Normal
+//             },
+//             ..Default::default()
+//         })
+//         .width(Length::Fill)
+// }
+
+pub fn get_text<T: Into<String>>(input: T, is_bold: bool) -> Text<'static> {
+    let input_string = input.into();
+    text(input_string)
         .size(14)
         .font(Font {
             weight: if is_bold {
@@ -110,4 +126,26 @@ pub fn get_text(input: &str, is_bold: bool) -> Text {
             ..Default::default()
         })
         .width(Length::Fill)
+}
+
+pub fn add_processed_to_filename(path_str: &str) -> String {
+    let path = Path::new(path_str);
+    let mut new_path = PathBuf::from(path);
+
+    if let Some(file_stem) = path.file_stem() {
+        if let Some(extension) = path.extension() {
+            let new_file_name = format!(
+                "{}_{}.{}",
+                file_stem.to_string_lossy(),
+                &PROCESSED_FILENAME,
+                extension.to_string_lossy()
+            );
+            new_path.set_file_name(new_file_name);
+        } else {
+            let new_file_name = format!("{}{}", file_stem.to_string_lossy(), &PROCESSED_FILENAME);
+            new_path.set_file_name(new_file_name);
+        }
+    }
+
+    new_path.to_string_lossy().into_owned()
 }
