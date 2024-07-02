@@ -150,7 +150,16 @@ impl iced::Application for FastFileFlow {
                 if path != "" {
                     self.file_loaded = path.clone();
 
-                    _ = crate::dialog::read_csv(path, 8);
+                    // _ = crate::dialog::read_csv(path, 8);
+                    async_std::task::block_on(async {
+                        if let Err(err) =
+                            crate::dialog::open_file_async(path.as_str(), "c:/tmp/MA_only.csv")
+                                .await
+                        {
+                            eprintln!("error running filter_by_region: {}", err);
+                            std::process::exit(1);
+                        }
+                    });
                 }
 
                 Command::none()
