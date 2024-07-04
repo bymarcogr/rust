@@ -2,6 +2,7 @@ use crate::app::FastFileFlowMessage;
 use iced::widget::{container, text};
 use iced::{Element, Length, Theme};
 use iced_table::table;
+use iced_widget::{Button, Text};
 
 #[derive(Debug, Clone)]
 pub struct IcedRow {
@@ -53,10 +54,12 @@ impl<'a> table::Column<'a, FastFileFlowMessage, Theme, iced::Renderer> for IcedC
     type Row = IcedRow;
 
     fn header(&'a self, _col_index: usize) -> Element<'a, FastFileFlowMessage> {
-        let content = self.column_header.clone();
+        let header = Button::new(Text::new(self.column_header.clone()))
+            .on_press(FastFileFlowMessage::HeaderClicked(_col_index));
 
-        container(text(content).size(10.0))
-            .height(24)
+        container(header)
+            .height(32)
+            .width(Length::Fill)
             .center_y()
             .into()
     }

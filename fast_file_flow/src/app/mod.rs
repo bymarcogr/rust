@@ -2,8 +2,11 @@ use crate::constants::english::*;
 use crate::constants::icons::*;
 use crate::constants::sizes::{FONT_NAME, PANEL_HEIGHT, PANEL_WIDTH, SEARCH_TEXTBOX_WIDTH};
 use crate::dynamictable::{IcedColumn, IcedRow};
+use crate::stadistics::Stadistics;
 use crate::stored_file::StoredFile;
-use crate::util::{get_full_directory, get_logo, get_menu_button, get_text, wrap_tooltip};
+use crate::util::{
+    get_full_directory, get_logo, get_menu_button, get_text, get_text_size, wrap_tooltip,
+};
 use iced::Subscription;
 use iced_futures::subscription;
 use iced_table::table;
@@ -26,6 +29,7 @@ pub struct FastFileFlow {
     is_primary_logo: bool,
     clicked_button: String,
     selected_file: StoredFile,
+    column_stadistics: Stadistics,
     header: scrollable::Id,
     body: scrollable::Id,
     footer: scrollable::Id,
@@ -46,6 +50,7 @@ pub enum FastFileFlowMessage {
     LoadFileButtonClick(bool),
     Tick(f32),
     SetSelectedFile(StoredFile),
+    HeaderClicked(usize),
     FilterButtonClick(),
     ProcessButtonClick(),
     AddButtonClick(),
@@ -60,6 +65,7 @@ pub enum FastFileFlowMessage {
     SyncHeader(scrollable::AbsoluteOffset),
     Resizing(usize, f32),
     Resized,
+    SetStadisticsFile(Stadistics),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -79,11 +85,12 @@ impl iced::Application for FastFileFlow {
         (
             FastFileFlow {
                 page: Page::Main,
-                theme: Theme::Light,
+                theme: Theme::GruvboxLight,
                 input_value: String::from(""),
                 is_primary_logo: false,
                 clicked_button: String::from(""),
                 selected_file: StoredFile::default(),
+                column_stadistics: Stadistics::default(),
                 header: scrollable::Id::unique(),
                 body: scrollable::Id::unique(),
                 footer: scrollable::Id::unique(),
@@ -170,6 +177,28 @@ impl iced::Application for FastFileFlow {
                 self.enable_loading(false);
                 Command::none()
             }
+
+            FastFileFlowMessage::HeaderClicked(column_index) => {
+                self.enable_loading(true);
+
+                let header = self.columns.get(column_index).unwrap();
+                println!(
+                    "Header clicked: {} - {}",
+                    column_index, header.column_header
+                );
+
+                Command::perform(Stadistics::new(header.clone()), |stadistics_file| {
+                    FastFileFlowMessage::SetStadisticsFile(stadistics_file)
+                })
+                // Realiza alguna acción al hacer clic en el encabezado
+                //Command::none()
+            }
+            FastFileFlowMessage::SetStadisticsFile(stadistics_file) => {
+                self.column_stadistics = stadistics_file;
+                self.enable_loading(false);
+                Command::none()
+            }
+
             FastFileFlowMessage::FilterButtonClick() => {
                 self.clicked_button = String::from("Filter Button Clicked");
                 Command::none()
@@ -346,7 +375,6 @@ impl FastFileFlow {
         let selected_file = Text::new(self.file_loaded.as_str())
             .width(PANEL_WIDTH)
             .size(Pixels(10.0));
-        let value = 50.0;
 
         let progress = progress_bar(0.0..=100.0, self.progress).height(15.0);
 
@@ -369,7 +397,7 @@ impl FastFileFlow {
         let panel_file_details = column![
             row![
                 get_text("Filename:", false),
-                get_text(self.selected_file.file_name.as_str(), true).size(Pixels(9.0))
+                get_text_size(self.selected_file.file_name.as_str(), true, Pixels(9.0))
             ],
             row![
                 get_text("Encoding:", false),
@@ -424,53 +452,69 @@ impl FastFileFlow {
 
         let panel_column_analysis = column![
             row![
-                get_text("Datatype", false),
-                get_text("Valor", true),
+                get_text("Column:", false),
+                get_text_size(
+                    self.column_stadistics.header.to_string(),
+                    true,
+                    Pixels(10.0)
+                ),
                 TAB_SPACE,
-                get_text("Mean", false),
-                get_text("Valor", true)
+                get_text("Mean:", false),
+                get_text_size(self.column_stadistics.mean.as_str(), true, Pixels(10.0))
             ],
             row![
-                get_text("Distinct", false),
-                get_text("Valor", true),
+                get_text("Datatype:", false),
+                get_text_size(
+                    self.column_stadistics.data_type.to_string(),
+                    true,
+                    Pixels(10.0)
+                ),
                 TAB_SPACE,
-                get_text("Median", false),
-                get_text("Valor", true)
+                get_text("Median:", false),
+                get_text_size(self.column_stadistics.median.as_str(), true, Pixels(10.0))
             ],
             row![
-                get_text("Repeated", false),
-                get_text("Valor", true),
+                get_text("Class:", false),
+                get_text_size(
+                    self.column_stadistics.classification.to_string(),
+                    true,
+                    Pixels(10.0)
+                ),
                 TAB_SPACE,
-                get_text("Mode", false),
-                get_text("Valor", true)
+                get_text("Mode:", false),
+                get_text_size(self.column_stadistics.mode.as_str(), true, Pixels(10.0)),
             ],
             row![
-                get_text("Minimum", false),
-                get_text("Valor", true),
+                get_text("Distinct:", false),
+                get_text_size(self.column_stadistics.distinct.as_str(), true, Pixels(10.0)),
                 TAB_SPACE,
-                get_text("Range", false),
-                get_text("Valor", true)
+                get_text("Range:", false),
+                get_text_size(self.column_stadistics.range.as_str(), true, Pixels(10.0)),
             ],
             row![
-                get_text("Maximum", false),
-                get_text("Valor", true),
+                get_text("Repeated:", false),
+                get_text_size(
+                    self.column_stadistics.most_repeated.as_str(),
+                    true,
+                    Pixels(10.0)
+                ),
                 TAB_SPACE,
-                get_text("Variance", false),
-                get_text("Valor", true)
+                get_text("Variance:", false),
+                get_text_size(self.column_stadistics.variance.as_str(), true, Pixels(10.0)),
             ],
             row![
-                horizontal_space(),
-                horizontal_space(),
+                get_text("Minimum:", false),
+                get_text_size(self.column_stadistics.minimum.as_str(), true, Pixels(10.0)),
                 TAB_SPACE,
-                get_text("Quatril", false),
-                get_text("Valor", true)
+                get_text("Quatril:", false),
+                get_text_size(self.column_stadistics.quartil.as_str(), true, Pixels(10.0)),
             ],
             row![
-                horizontal_space(),
-                horizontal_space(),
+                get_text("Maximum:", false),
+                get_text_size(self.column_stadistics.maximum.as_str(), true, Pixels(10.0)),
                 TAB_SPACE,
-                get_text("Std Dev.", false),
-                get_text("Valor", true)
+                get_text("Std Dev:", false),
+                get_text_size(self.column_stadistics.std_dev.as_str(), true, Pixels(10.0)),
             ],
         ];
         let container_analysis = create_section_container(panel_column_analysis);

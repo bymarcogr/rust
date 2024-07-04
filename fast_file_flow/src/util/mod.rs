@@ -3,7 +3,7 @@ use iced::widget::image::{Handle, Image};
 use iced::widget::{button, text, tooltip, Text};
 use iced::window::{icon::Error, Icon};
 use iced::Length::{self, Fixed};
-use iced::{Element, Font};
+use iced::{Element, Font, Pixels};
 use std::path::{Path, PathBuf};
 
 use crate::app::FastFileFlowMessage;
@@ -126,6 +126,10 @@ pub fn get_text<T: Into<String>>(input: T, is_bold: bool) -> Text<'static> {
             ..Default::default()
         })
         .width(Length::Fill)
+}
+
+pub fn get_text_size<T: Into<String>>(input: T, is_bold: bool, size: Pixels) -> Text<'static> {
+    self::get_text(input, is_bold).size(size)
 }
 
 pub fn add_processed_to_filename(path_str: &str) -> String {
