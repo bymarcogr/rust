@@ -1,9 +1,11 @@
-use std::{fs::metadata, io::Cursor, path::Path};
+pub mod file_type;
 
 use chardet::detect;
 use csv_async::AsyncReaderBuilder;
+use file_type::FileType;
 use futures::stream::StreamExt;
 use serde_json::Value;
+use std::{fs::metadata, io::Cursor, path::Path};
 use tokio::{
     fs::File,
     io::{AsyncBufReadExt, AsyncReadExt, BufReader},
@@ -18,22 +20,6 @@ pub struct StoredFile {
     pub sintaxis: FileType,
     pub rows_counter: u64,
     pub columns_counter: u64,
-}
-
-pub enum FileType {
-    CSV,
-    JSON,
-    Unknown,
-}
-
-impl FileType {
-    pub fn to_string(&self) -> &str {
-        match self {
-            FileType::CSV => "CSV",
-            FileType::JSON => "JSON",
-            FileType::Unknown => "Unknown",
-        }
-    }
 }
 
 impl StoredFile {
@@ -95,6 +81,7 @@ impl StoredFile {
         rdr.headers().await.unwrap().into_iter().count() as u64
     }
 
+    #[warn(unused_assignments)]
     async fn get_rows_number(file_path: &str) -> u64 {
         let mut counter: u64 = 0;
         let mut rdr =
