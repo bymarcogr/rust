@@ -81,7 +81,15 @@ pub fn wrap_tooltip(
     element: Element<'static, FastFileFlowMessage>,
     tooltip_text: &'static str,
 ) -> Element<'static, FastFileFlowMessage> {
-    tooltip(element, tooltip_text, tooltip::Position::Bottom).into()
+    wrap_tooltip_with_position(element, tooltip_text, tooltip::Position::Bottom)
+}
+
+pub fn wrap_tooltip_with_position(
+    element: Element<'static, FastFileFlowMessage>,
+    tooltip_text: &'static str,
+    position: tooltip::Position,
+) -> Element<'static, FastFileFlowMessage> {
+    tooltip(element, tooltip_text, position).into()
 }
 
 pub fn get_menu_button_by_text(
