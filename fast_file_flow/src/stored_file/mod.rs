@@ -1,15 +1,21 @@
+pub mod column_stored;
 pub mod file_type;
+pub mod row_stored;
 
 use chardet::detect;
+use column_stored::ColumnStored;
 use csv_async::AsyncReaderBuilder;
 use file_type::FileType;
 use futures::stream::StreamExt;
+use row_stored::RowStored;
 use serde_json::Value;
 use std::{fs::metadata, io::Cursor, path::Path};
 use tokio::{
     fs::File,
     io::{AsyncBufReadExt, AsyncReadExt, BufReader},
 };
+
+use crate::dynamictable::{IcedColumn, IcedRow};
 #[derive(Debug, Clone)]
 pub struct StoredFile {
     pub file_path: String,
@@ -18,8 +24,8 @@ pub struct StoredFile {
     pub size: f64,
     pub format: String,
     pub sintaxis: FileType,
-    pub rows_counter: u64,
-    pub columns_counter: u64,
+    pub rows: RowStored,
+    pub columns: ColumnStored,
 }
 
 impl StoredFile {
@@ -31,21 +37,36 @@ impl StoredFile {
             size: 0.0,
             format: String::new(),
             sintaxis: FileType::Unknown,
-            rows_counter: 0,
-            columns_counter: 0,
+            rows: RowStored::empty(),
+            columns: ColumnStored::empty(),
         }
     }
 
     pub async fn new(file_path: String) -> Self {
-        Self {
-            file_path: file_path.clone(),
-            file_name: Self::get_file_name(&file_path),
-            encoding: Self::get_encoding(&file_path).await,
-            size: Self::get_size_kb(&file_path),
-            format: Self::get_file_extension(&file_path),
-            rows_counter: Self::get_rows_number(&file_path).await,
-            columns_counter: Self::get_columns_number(&file_path).await,
-            sintaxis: Self::detect_file_type(&file_path).await,
+        let format = Self::get_file_extension(&file_path);
+        let sintaxis = Self::detect_file_type(&file_path).await;
+        if format != "CSV" || sintaxis != FileType::CSV {
+            Self {
+                file_path: file_path.clone(),
+                file_name: Self::get_file_name(&file_path),
+                encoding: Self::get_encoding(&file_path).await,
+                size: Self::get_size_kb(&file_path),
+                format,
+                rows: RowStored::empty(),
+                columns: ColumnStored::empty(),
+                sintaxis,
+            }
+        } else {
+            Self {
+                file_path: file_path.clone(),
+                file_name: Self::get_file_name(&file_path),
+                encoding: Self::get_encoding(&file_path).await,
+                size: Self::get_size_kb(&file_path),
+                format: format,
+                rows: Self::get_rows(&file_path).await,
+                columns: Self::get_columns(&file_path).await,
+                sintaxis: sintaxis,
+            }
         }
     }
 
@@ -75,23 +96,55 @@ impl StoredFile {
         file_extension.to_uppercase().to_owned()
     }
 
-    async fn get_columns_number(file_path: &str) -> u64 {
+    async fn get_columns(file_path: &str) -> ColumnStored {
         let mut rdr = csv_async::AsyncReader::from_reader(File::open(file_path).await.unwrap());
-        rdr.headers().await.unwrap().into_iter().count() as u64
+        let counter = rdr.headers().await.unwrap().into_iter().count() as u64;
+        let headers_vec: Vec<IcedColumn> = rdr
+            .headers()
+            .await
+            .unwrap()
+            .clone()
+            .iter()
+            .map(|s| IcedColumn::new(s.to_string()))
+            .collect();
+
+        ColumnStored::new(counter, headers_vec.clone())
     }
 
     #[warn(unused_assignments)]
-    async fn get_rows_number(file_path: &str) -> u64 {
+    async fn get_rows(file_path: &str) -> RowStored {
         let mut counter: u64 = 0;
         let mut rdr = csv_async::AsyncReader::from_reader(File::open(file_path).await.unwrap());
+        let mut rdr_count =
+            csv_async::AsyncReader::from_reader(File::open(file_path).await.unwrap());
 
-        let handle_spawn = tokio::spawn(async move {
-            let it = rdr.records().enumerate().count().await;
-            it as u64
+        let handle_count = tokio::spawn(async move {
+            let count = rdr_count.records().count().await;
+            count as u64
         });
-        counter = handle_spawn.await.unwrap();
+
+        let handle_records = tokio::spawn(async move {
+            let mut records_vec = Vec::new();
+            let mut row_index = 0;
+            let mut records = rdr.records();
+
+            while let Some(record) = records.next().await {
+                if row_index >= 50 {
+                    break;
+                }
+                let record = record.unwrap();
+                let values: Vec<String> = record.iter().map(|s| s.to_string()).collect();
+                records_vec.push(IcedRow::new(values, 1 as u32, row_index));
+                row_index += 1;
+            }
+            records_vec
+        });
+
+        counter = handle_count.await.unwrap();
+        let records_vec = handle_records.await.unwrap();
+
         println!("Rows {}", counter);
-        counter
+        RowStored::new(counter, records_vec)
     }
 
     pub fn size_mb_as_str(&self) -> String {

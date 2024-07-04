@@ -79,7 +79,7 @@ impl iced::Application for FastFileFlow {
         (
             FastFileFlow {
                 page: Page::Main,
-                theme: Theme::Dark,
+                theme: Theme::Light,
                 input_value: String::from(""),
                 is_primary_logo: false,
                 clicked_button: String::from(""),
@@ -164,6 +164,8 @@ impl iced::Application for FastFileFlow {
                 Command::none()
             }
             FastFileFlowMessage::SetSelectedFile(selected_file) => {
+                self.rows = selected_file.rows.sample.clone();
+                self.columns = selected_file.columns.headers.clone();
                 self.selected_file = selected_file;
                 self.enable_loading(false);
                 Command::none()
@@ -394,7 +396,8 @@ impl FastFileFlow {
                     format!(
                         "{}",
                         self.selected_file
-                            .rows_counter
+                            .rows
+                            .total
                             .to_formatted_string(&Locale::en)
                     )
                     .as_str(),
@@ -407,7 +410,8 @@ impl FastFileFlow {
                     format!(
                         "{}",
                         self.selected_file
-                            .columns_counter
+                            .columns
+                            .total
                             .to_formatted_string(&Locale::en)
                     )
                     .as_str(),
@@ -586,16 +590,10 @@ impl FastFileFlow {
                 FastFileFlowMessage::SyncHeader,
             );
 
-            // if self.resize_columns_enabled {
             table =
                 table.on_column_resize(FastFileFlowMessage::Resizing, FastFileFlowMessage::Resized);
-            // }
-            // if self.footer_enabled {
-            //table = table.footer(self.footer.clone());
-            // }
-            // if self.min_width_enabled {
+
             table = table.min_width(size.width);
-            // }
 
             table.into()
         });

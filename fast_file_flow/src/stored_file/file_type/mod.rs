@@ -1,3 +1,5 @@
+use core::mem::discriminant as tag;
+
 #[derive(Debug, Clone)]
 pub enum FileType {
     CSV,
@@ -12,5 +14,10 @@ impl FileType {
             FileType::JSON => "JSON",
             FileType::Unknown => "Unknown",
         }
+    }
+}
+impl PartialEq<Self> for FileType {
+    fn eq(&self, rhs: &Self) -> bool {
+        tag(self) == tag(rhs)
     }
 }
