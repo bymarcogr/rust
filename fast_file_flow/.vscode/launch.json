@@ -7,58 +7,73 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug unit tests in library 'fast_file_flow'",
-            "cargo": {
-                "args": [
-                    "test",
-                    "--no-run",
-                    "--lib",
-                    "--package=fast_file_flow"
-                ],
-                "filter": {
-                    "name": "fast_file_flow",
-                    "kind": "lib"
-                }
-            },
+            "name": "Debug",
+            "program": "D:\\git\\rust\\fast_file_flow\\target\\debug\\fast_file_flow.exe",
             "args": [],
-            "cwd": "${workspaceFolder}"
-        },
-        {
-            "type": "lldb",
-            "request": "launch",
-            "name": "Debug executable 'fast_file_flow'",
-            "cargo": {
-                "args": [
-                    "build",
-                    "--bin=fast_file_flow",
-                    "--package=fast_file_flow"
-                ],
-                "filter": {
-                    "name": "fast_file_flow",
-                    "kind": "bin"
-                }
-            },
-            "args": [],
-            "cwd": "${workspaceFolder}"
-        },
-        {
-            "type": "lldb",
-            "request": "launch",
-            "name": "Debug unit tests in executable 'fast_file_flow'",
-            "cargo": {
-                "args": [
-                    "test",
-                    "--no-run",
-                    "--bin=fast_file_flow",
-                    "--package=fast_file_flow"
-                ],
-                "filter": {
-                    "name": "fast_file_flow",
-                    "kind": "bin"
-                }
-            },
-            "args": [],
-            "cwd": "${workspaceFolder}"
+            "cwd": "D:\\git\\rust\\fast_file_flow",
+            "sourceLanguages": [
+                "rust"
+            ],
+            "env": {
+                "RUST_BACKTRACE": "short",
+                "ALLUSERSPROFILE": "C:\\ProgramData",
+                "APPDATA": "C:\\Users\\by_ma\\AppData\\Roaming",
+                "APPLICATION_INSIGHTS_NO_DIAGNOSTIC_CHANNEL": "true",
+                "CHROME_CRASHPAD_PIPE_NAME": "\\\\.\\pipe\\crashpad_26920_METQEKTINYTOYKTA",
+                "COMPUTERNAME": "NITRO5",
+                "ComSpec": "C:\\WINDOWS\\system32\\cmd.exe",
+                "CommonProgramFiles": "C:\\Program Files\\Common Files",
+                "CommonProgramFiles(x86)": "C:\\Program Files (x86)\\Common Files",
+                "CommonProgramW6432": "C:\\Program Files\\Common Files",
+                "DriverData": "C:\\Windows\\System32\\Drivers\\DriverData",
+                "EFC_7708": "1",
+                "ELECTRON_RUN_AS_NODE": "1",
+                "FPS_BROWSER_APP_PROFILE_STRING": "Internet Explorer",
+                "FPS_BROWSER_USER_PROFILE_STRING": "Default",
+                "HOMEDRIVE": "C:",
+                "HOMEPATH": "\\Users\\by_ma",
+                "JD2_HOME": "C:\\Users\\by_ma\\AppData\\Local\\JDownloader 2.0",
+                "LOCALAPPDATA": "C:\\Users\\by_ma\\AppData\\Local",
+                "LOGONSERVER": "\\\\NITRO5",
+                "NUMBER_OF_PROCESSORS": "16",
+                "ORIGINAL_XDG_CURRENT_DESKTOP": "undefined",
+                "OS": "Windows_NT",
+                "OneDrive": "C:\\Users\\by_ma\\OneDrive",
+                "PATHEXT": ".COM;.EXE;.BAT;.CMD;.VBS;.VBE;.JS;.JSE;.WSF;.WSH;.MSC",
+                "POWERSHELL_DISTRIBUTION_CHANNEL": "MSI:Windows 10 Home",
+                "PROCESSOR_ARCHITECTURE": "AMD64",
+                "PROCESSOR_IDENTIFIER": "Intel64 Family 6 Model 154 Stepping 3, GenuineIntel",
+                "PROCESSOR_LEVEL": "6",
+                "PROCESSOR_REVISION": "9a03",
+                "PSModulePath": "C:\\Program Files\\WindowsPowerShell\\Modules;C:\\WINDOWS\\system32\\WindowsPowerShell\\v1.0\\Modules",
+                "PUBLIC": "C:\\Users\\Public",
+                "Path": "C:\\Program Files (x86)\\Razer\\ChromaBroadcast\\bin;C:\\Program Files\\Razer\\ChromaBroadcast\\bin;C:\\Windows\\system32;C:\\Windows;C:\\Windows\\System32\\Wbem;C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\;C:\\Windows\\System32\\OpenSSH\\;C:\\Program Files (x86)\\NVIDIA Corporation\\PhysX\\Common;C:\\WINDOWS\\system32;C:\\WINDOWS;C:\\WINDOWS\\System32\\Wbem;C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\;C:\\WINDOWS\\System32\\OpenSSH\\;C:\\Program Files\\NVIDIA Corporation\\NVIDIA NvDLISR;C:\\WINDOWS\\system32\\config\\systemprofile\\AppData\\Local\\Microsoft\\WindowsApps;C:\\Program Files (x86)\\HP\\HP OCR\\DB_Lib\\;C:\\Program Files\\HP\\Common\\HPDestPlgIn\\;C:\\Program Files (x86)\\HP\\Common\\HPDestPlgIn\\;C:\\Program Files\\Git\\cmd;C:\\Program Files\\PowerShell\\7\\;C:\\Users\\by_ma\\.cargo\\bin;C:\\Users\\by_ma\\AppData\\Local\\Microsoft\\WindowsApps;C:\\Program Files\\HP\\Common\\HPDestPlgIn\\;C:\\Program Files (x86)\\HP\\Common\\HPDestPlgIn\\;C:\\Users\\by_ma\\AppData\\Local\\Programs\\Microsoft VS Code\\bin",
+                "ProgramData": "C:\\ProgramData",
+                "ProgramFiles": "C:\\Program Files",
+                "ProgramFiles(x86)": "C:\\Program Files (x86)",
+                "ProgramW6432": "C:\\Program Files",
+                "SESSIONNAME": "Console",
+                "SystemDrive": "C:",
+                "SystemRoot": "C:\\WINDOWS",
+                "TEMP": "C:\\Users\\by_ma\\AppData\\Local\\Temp",
+                "TMP": "C:\\Users\\by_ma\\AppData\\Local\\Temp",
+                "USERDOMAIN": "NITRO5",
+                "USERDOMAIN_ROAMINGPROFILE": "NITRO5",
+                "USERNAME": "Marco",
+                "USERPROFILE": "C:\\Users\\by_ma",
+                "VBOX_MSI_INSTALL_PATH": "C:\\Program Files\\Oracle\\VirtualBox\\",
+                "VSCODE_AMD_ENTRYPOINT": "vs/workbench/api/node/extensionHostProcess",
+                "VSCODE_CODE_CACHE_PATH": "C:\\Users\\by_ma\\AppData\\Roaming\\Code\\CachedData\\5437499feb04f7a586f677b155b039bc2b3669eb",
+                "VSCODE_CRASH_REPORTER_PROCESS_TYPE": "extensionHost",
+                "VSCODE_CWD": "C:\\Users\\by_ma\\AppData\\Local\\Programs\\Microsoft VS Code",
+                "VSCODE_HANDLES_UNCAUGHT_ERRORS": "true",
+                "VSCODE_IPC_HOOK": "\\\\.\\pipe\\5a577b65-1.90.2-main-sock",
+                "VSCODE_L10N_BUNDLE_LOCATION": "",
+                "VSCODE_NLS_CONFIG": "{\"locale\":\"en-us\",\"osLocale\":\"en-us\",\"availableLanguages\":{},\"_languagePackSupport\":true}",
+                "VSCODE_PID": "26920",
+                "ZES_ENABLE_SYSMAN": "1",
+                "windir": "C:\\WINDOWS"
+            }
         }
     ]
 }

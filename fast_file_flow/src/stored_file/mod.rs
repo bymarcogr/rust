@@ -1,8 +1,13 @@
+use std::{fs::metadata, io::Cursor, path::Path};
+
 use chardet::detect;
-use futures::StreamExt;
+use csv_async::AsyncReaderBuilder;
+use futures::stream::StreamExt;
 use serde_json::Value;
-use std::{fs::metadata, path::Path};
-use tokio::{fs::File, io::AsyncReadExt};
+use tokio::{
+    fs::File,
+    io::{AsyncBufReadExt, AsyncReadExt, BufReader},
+};
 
 pub struct StoredFile {
     pub file_path: String,
@@ -52,9 +57,9 @@ impl StoredFile {
             encoding: Self::get_encoding(&file_path).await,
             size: Self::get_size_kb(&file_path),
             format: Self::get_file_extension(&file_path),
-            sintaxis: Self::detect_file_type(&file_path).await,
             rows_counter: Self::get_rows_number(&file_path).await,
             columns_counter: Self::get_columns_number(&file_path).await,
+            sintaxis: Self::detect_file_type(&file_path).await,
         }
     }
 
@@ -91,6 +96,7 @@ impl StoredFile {
     }
 
     async fn get_rows_number(file_path: &str) -> u64 {
+        let mut counter: u64 = 0;
         let mut rdr =
             csv_async::AsyncReader::from_reader(tokio::fs::File::open(file_path).await.unwrap());
 
@@ -98,7 +104,7 @@ impl StoredFile {
             let it = rdr.records().enumerate().count().await;
             it as u64
         });
-        let counter = handle_spawn.await.unwrap();
+        counter = handle_spawn.await.unwrap();
         println!("Rows {}", counter);
         counter
     }
@@ -119,18 +125,25 @@ impl StoredFile {
     }
 
     async fn detect_file_type(file_path: &str) -> FileType {
-        let mut file = File::open(file_path).await.unwrap();
-        let mut buffer = Vec::new();
-        file.read_to_end(&mut buffer).await.unwrap();
+        let file = File::open(file_path).await.unwrap();
+        let mut buf_reader = BufReader::new(file);
 
-        if serde_json::from_slice::<Value>(&buffer).is_ok() {
-            return FileType::JSON;
+        let mut buffer = String::new();
+        for _ in 0..100 {
+            let bytes_read = buf_reader.read_line(&mut buffer).await.unwrap();
+            if bytes_read == 0 {
+                break;
+            }
         }
 
-        let mut rdr: csv_async::AsyncReader<File> =
-            csv_async::AsyncReader::from_reader(tokio::fs::File::open(file_path).await.unwrap());
+        if serde_json::from_str::<Value>(&buffer).is_ok() {
+            return FileType::JSON;
+        }
+        let cursor = Cursor::new(buffer);
+        let mut rdr = AsyncReaderBuilder::new().create_reader(cursor);
+        let mut records = rdr.records();
 
-        if rdr.records().next().await.is_some() {
+        if records.next().await.is_some() {
             return FileType::CSV;
         }
 
