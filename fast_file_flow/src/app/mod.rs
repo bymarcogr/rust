@@ -1,4 +1,3 @@
-use std::borrow::BorrowMut;
 
 use crate::constants::english::*;
 use crate::constants::icons::*;
@@ -6,7 +5,7 @@ use crate::constants::sizes::{FONT_NAME, PANEL_HEIGHT, PANEL_WIDTH, SEARCH_TEXTB
 use crate::dynamictable::{ColumnTable, RowTable};
 use crate::stored_file::StoredFile;
 use crate::util::{
-    get_full_directory, get_logo, get_menu_button, get_menu_button_by_text, get_text, wrap_tooltip,
+    get_full_directory, get_logo, get_menu_button, get_text, wrap_tooltip,
 };
 
 use iced_table::table;
