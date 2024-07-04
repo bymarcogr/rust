@@ -1,22 +1,22 @@
-
 use crate::constants::english::*;
 use crate::constants::icons::*;
 use crate::constants::sizes::{FONT_NAME, PANEL_HEIGHT, PANEL_WIDTH, SEARCH_TEXTBOX_WIDTH};
 use crate::dynamictable::{ColumnTable, RowTable};
 use crate::stored_file::StoredFile;
-use crate::util::{
-    get_full_directory, get_logo, get_menu_button, get_text, wrap_tooltip,
-};
-
+use crate::util::{get_full_directory, get_logo, get_menu_button, get_text, wrap_tooltip};
+use iced::Subscription;
+use iced_futures::subscription;
 use iced_table::table;
+use std::time::Duration;
 
 use iced::widget::{
-    column, container, horizontal_space, responsive, row, scrollable, text, text_input, tooltip,
-    Button, Column, Container, Row, Text, TextInput,
+    column, container, horizontal_space, progress_bar, responsive, row, scrollable, text,
+    text_input, tooltip, Button, Column, Container, Row, Text, TextInput,
 };
 
 use iced::Length::Fixed;
 use iced::{Alignment, Border, Color, Command, Element, Font, Length, Padding, Pixels, Theme};
+
 use num_format::{Locale, ToFormattedString};
 
 pub struct FastFileFlow {
@@ -32,6 +32,8 @@ pub struct FastFileFlow {
     columns: Vec<ColumnTable>,
     rows: Vec<RowTable>,
     file_loaded: String,
+    progress: f32,
+    running: bool,
 }
 
 // Mensajes para la actualización de la GUI
@@ -41,8 +43,9 @@ pub enum FastFileFlowMessage {
     TextBoxChange(String),
     UserButtonClick(),
     MenuButtonClick(),
-    RefreshButtonClick(),
-    LoadFileButtonClick(),
+    LoadFileButtonClick(bool),
+    Tick(f32),
+    SetSelectedFile(StoredFile),
     FilterButtonClick(),
     ProcessButtonClick(),
     AddButtonClick(),
@@ -95,6 +98,9 @@ impl iced::Application for FastFileFlow {
                 ],
                 rows: (0..50).map(RowTable::generate).collect(),
                 file_loaded: String::from(""),
+
+                progress: 0.0,
+                running: false,
             },
             Command::none(),
         )
@@ -137,18 +143,37 @@ impl iced::Application for FastFileFlow {
                 self.clicked_button = String::from("Menu Button Clicked");
                 Command::none()
             }
-            FastFileFlowMessage::RefreshButtonClick() => {
-                let path = String::from(self.file_loaded.clone());
+            FastFileFlowMessage::LoadFileButtonClick(is_refresh) => {
+                self.enable_loading(true);
 
-                self.load_stored_file(path);
+                let mut path = String::new();
+                if is_refresh {
+                    path = String::from(self.file_loaded.clone());
+                } else {
+                    path = crate::dialog::load_csv();
+                }
 
+                if path != "" {
+                    self.file_loaded = path.clone();
+
+                    Command::perform(StoredFile::new(String::from(path)), |stored_file| {
+                        FastFileFlowMessage::SetSelectedFile(stored_file)
+                    })
+                } else {
+                    Command::none()
+                }
+            }
+
+            FastFileFlowMessage::Tick(progress) => {
+                if self.running {
+                    self.progress = progress;
+                    println!("Tick - {}", progress)
+                }
                 Command::none()
             }
-            FastFileFlowMessage::LoadFileButtonClick() => {
-                let path = crate::dialog::load_csv();
-
-                self.load_stored_file(path);
-
+            FastFileFlowMessage::SetSelectedFile(selected_file) => {
+                self.selected_file = selected_file;
+                self.enable_loading(false);
                 Command::none()
             }
             FastFileFlowMessage::FilterButtonClick() => {
@@ -257,6 +282,22 @@ impl iced::Application for FastFileFlow {
     fn theme(&self) -> Self::Theme {
         self.theme.clone()
     }
+
+    fn subscription(&self) -> Subscription<Self::Message> {
+        if self.running {
+            subscription::unfold("progress", self.progress, move |progress| async move {
+                tokio::time::sleep(Duration::from_millis(100)).await;
+                let mut new_progress = progress + 1.0 as f32;
+                if new_progress == 100.0 {
+                    new_progress = 1.0 as f32;
+                }
+                (FastFileFlowMessage::Tick(new_progress), new_progress)
+            })
+        } else {
+            println!("exit");
+            Subscription::none()
+        }
+    }
 }
 
 impl FastFileFlow {
@@ -300,14 +341,21 @@ impl FastFileFlow {
     fn build_panels(&self) -> Row<FastFileFlowMessage, Theme, iced::Renderer> {
         let button_refresh = get_menu_button(
             REFRESH,
-            FastFileFlowMessage::RefreshButtonClick(),
+            FastFileFlowMessage::LoadFileButtonClick(true),
             REFRESH_ICON,
         );
-        let button_open =
-            get_menu_button(OPEN, FastFileFlowMessage::LoadFileButtonClick(), OPEN_ICON);
+        let button_open = get_menu_button(
+            OPEN,
+            FastFileFlowMessage::LoadFileButtonClick(false),
+            OPEN_ICON,
+        );
         let selected_file = Text::new(self.file_loaded.as_str())
             .width(PANEL_WIDTH)
             .size(Pixels(10.0));
+        let value = 50.0;
+
+        let progress = progress_bar(0.0..=100.0, self.progress).height(15.0);
+
         let panel_file = column![
             row![
                 "File",
@@ -318,6 +366,8 @@ impl FastFileFlow {
             ],
             row![TAB_SPACE],
             row![selected_file],
+            row![TAB_SPACE],
+            row![progress]
         ];
 
         let container_load_file = create_section_container(panel_file);
@@ -561,17 +611,10 @@ impl FastFileFlow {
         row![table]
     }
 
-    fn load_stored_file(&mut self, path: String) {
-        if path != "" {
-            self.file_loaded = path.clone();
-            async_std::task::block_on(async {
-                // if let Err(err) = crate::dialog::open_file_async(&path).await {
-                //     eprintln!("error running filter_by_region: {}", err);
-                //     std::process::exit(1);
-                // }
-
-                self.selected_file = StoredFile::new(String::from(path)).await;
-            });
+    fn enable_loading(&mut self, activate: bool) {
+        self.running = activate;
+        if !self.running {
+            self.progress = 0.0;
         }
     }
 }

@@ -10,7 +10,7 @@ use tokio::{
     fs::File,
     io::{AsyncBufReadExt, AsyncReadExt, BufReader},
 };
-
+#[derive(Debug, Clone)]
 pub struct StoredFile {
     pub file_path: String,
     pub file_name: String,
@@ -76,16 +76,14 @@ impl StoredFile {
     }
 
     async fn get_columns_number(file_path: &str) -> u64 {
-        let mut rdr =
-            csv_async::AsyncReader::from_reader(tokio::fs::File::open(file_path).await.unwrap());
+        let mut rdr = csv_async::AsyncReader::from_reader(File::open(file_path).await.unwrap());
         rdr.headers().await.unwrap().into_iter().count() as u64
     }
 
     #[warn(unused_assignments)]
     async fn get_rows_number(file_path: &str) -> u64 {
         let mut counter: u64 = 0;
-        let mut rdr =
-            csv_async::AsyncReader::from_reader(tokio::fs::File::open(file_path).await.unwrap());
+        let mut rdr = csv_async::AsyncReader::from_reader(File::open(file_path).await.unwrap());
 
         let handle_spawn = tokio::spawn(async move {
             let it = rdr.records().enumerate().count().await;

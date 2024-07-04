@@ -9,7 +9,8 @@ chardet = "0.2.4"
 csv = "1.3.0"
 csv-async = { version = "1.3.0", features = ["tokio"] }
 futures = "0.3.30"
-iced = { version = "0.12.1", features = ["image","canvas","lazy"] } 
+iced = { version = "0.12.1", features = ["image","canvas","lazy","tokio"] } 
+iced_futures = "0.12.0"
 iced_table = "0.12.0"
 iced_widget = "0.12"
 image = "0.25.1"

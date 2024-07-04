@@ -10,11 +10,11 @@
             "name": "Debug",
             "cwd": "D:\\git\\rust\\fast_file_flow",
             "preLaunchTask": "cargo build",
-            "program": "D:\\git\\rust\\fast_file_flow\\target\\release\\fast_file_flow.exe",
+            "program": "D:\\git\\rust\\fast_file_flow\\target\\debug\\fast_file_flow.exe",
             "args": [],
             "sourceLanguages": [
                 "rust"
-            ],
+            ]
         }
     ]
 }
