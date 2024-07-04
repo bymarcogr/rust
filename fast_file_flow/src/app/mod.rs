@@ -1,7 +1,7 @@
 use crate::constants::english::*;
 use crate::constants::icons::*;
 use crate::constants::sizes::{FONT_NAME, PANEL_HEIGHT, PANEL_WIDTH, SEARCH_TEXTBOX_WIDTH};
-use crate::dynamictable::{ColumnTable, RowTable};
+use crate::dynamictable::{IcedColumn, IcedRow};
 use crate::stored_file::StoredFile;
 use crate::util::{get_full_directory, get_logo, get_menu_button, get_text, wrap_tooltip};
 use iced::Subscription;
@@ -29,8 +29,8 @@ pub struct FastFileFlow {
     header: scrollable::Id,
     body: scrollable::Id,
     footer: scrollable::Id,
-    columns: Vec<ColumnTable>,
-    rows: Vec<RowTable>,
+    columns: Vec<IcedColumn>,
+    rows: Vec<IcedRow>,
     file_loaded: String,
     progress: f32,
     running: bool,
@@ -87,16 +87,8 @@ impl iced::Application for FastFileFlow {
                 header: scrollable::Id::unique(),
                 body: scrollable::Id::unique(),
                 footer: scrollable::Id::unique(),
-                columns: vec![
-                    ColumnTable::new("Index".to_string()),
-                    ColumnTable::new("Column 2".to_string()),
-                    ColumnTable::new("Column 3".to_string()),
-                    ColumnTable::new("Column 4".to_string()),
-                    ColumnTable::new("Column 5".to_string()),
-                    ColumnTable::new("Column 6".to_string()),
-                    ColumnTable::new("Column 7".to_string()),
-                ],
-                rows: (0..50).map(RowTable::generate).collect(),
+                columns: vec![],
+                rows: vec![],
                 file_loaded: String::from(""),
 
                 progress: 0.0,
@@ -286,7 +278,7 @@ impl iced::Application for FastFileFlow {
     fn subscription(&self) -> Subscription<Self::Message> {
         if self.running {
             subscription::unfold("progress", self.progress, move |progress| async move {
-                tokio::time::sleep(Duration::from_millis(100)).await;
+                tokio::time::sleep(Duration::from_millis(50)).await;
                 let mut new_progress = progress + 1.0 as f32;
                 if new_progress == 100.0 {
                     new_progress = 1.0 as f32;
@@ -599,7 +591,7 @@ impl FastFileFlow {
                 table.on_column_resize(FastFileFlowMessage::Resizing, FastFileFlowMessage::Resized);
             // }
             // if self.footer_enabled {
-            table = table.footer(self.footer.clone());
+            //table = table.footer(self.footer.clone());
             // }
             // if self.min_width_enabled {
             table = table.min_width(size.width);
@@ -696,53 +688,4 @@ fn submit_btn(name: &str, event: FastFileFlowMessage) -> Button<FastFileFlowMess
     .width(Length::Fixed(100.0))
     .height(Length::Fixed(60.0))
     .style(iced::theme::Button::Primary)
-}
-
-impl<'a> table::Column<'a, FastFileFlowMessage, Theme, iced::Renderer> for ColumnTable {
-    type Row = RowTable;
-
-    fn header(&'a self, _col_index: usize) -> Element<'a, FastFileFlowMessage> {
-        let content = self.column_header.clone();
-
-        container(text(content)).height(24).center_y().into()
-    }
-
-    fn cell(
-        &'a self,
-        _col_index: usize,
-        _row_index: usize,
-        _row: &'a Self::Row,
-    ) -> Element<'a, FastFileFlowMessage> {
-        let content: Element<_> = text(_row_index).into();
-
-        container(content)
-            .width(Length::Fill)
-            .height(32)
-            .center_y()
-            .into()
-    }
-
-    fn footer(
-        &'a self,
-        _col_index: usize,
-        rows: &'a [Self::Row],
-    ) -> Option<Element<'a, FastFileFlowMessage>> {
-        // if matches!(self.kind, ColumnKind::Enabled) {
-        let total_enabled = rows.iter().filter(|row| row.is_enabled).count();
-
-        let content = Element::from(text(format!("Total Enabled: {total_enabled}")));
-        // } else {
-        //     horizontal_space().into()
-        // };
-
-        Some(container(content).height(24).center_y().into())
-    }
-
-    fn width(&self) -> f32 {
-        self.width
-    }
-
-    fn resize_offset(&self) -> Option<f32> {
-        self.resize_offset
-    }
 }
