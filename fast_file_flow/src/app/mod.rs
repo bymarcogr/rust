@@ -7,11 +7,9 @@ use crate::stored_file::StoredFile;
 use crate::util::{
     get_full_directory, get_logo, get_menu_button, get_text, get_text_size, wrap_tooltip,
 };
-use futures::executor::block_on;
 use iced::Subscription;
 use iced_futures::subscription;
 use iced_table::table;
-use std::borrow::Borrow;
 use std::time::Duration;
 
 use iced::widget::{
@@ -182,13 +180,7 @@ impl iced::Application for FastFileFlow {
 
             FastFileFlowMessage::HeaderClicked(column_index) => {
                 self.enable_loading(true);
-                let header = self.columns.get(column_index).unwrap();
-                println!(
-                    "Header clicked: {} - {}",
-                    column_index, header.column_header
-                );
 
-                //let column = block_on(self.selected_file.get_full_column(column_index));
                 let selected_file = self.selected_file.clone();
                 Command::perform(
                     async move { selected_file.get_stadistics(&column_index).await },
@@ -494,26 +486,22 @@ impl FastFileFlow {
                 get_text_size(self.column_stadistics.range.as_str(), true, Pixels(10.0)),
             ],
             row![
-                get_text("Repeated:", false),
-                get_text_size(
-                    self.column_stadistics.most_repeated.as_str(),
-                    true,
-                    Pixels(10.0)
-                ),
+                get_text("Minimum:", false),
+                get_text_size(self.column_stadistics.minimum.as_str(), true, Pixels(10.0)),
                 TAB_SPACE,
                 get_text("Variance:", false),
                 get_text_size(self.column_stadistics.variance.as_str(), true, Pixels(10.0)),
             ],
             row![
-                get_text("Minimum:", false),
-                get_text_size(self.column_stadistics.minimum.as_str(), true, Pixels(10.0)),
+                get_text("Maximum:", false),
+                get_text_size(self.column_stadistics.maximum.as_str(), true, Pixels(10.0)),
                 TAB_SPACE,
                 get_text("Quatril:", false),
                 get_text_size(self.column_stadistics.quartil.as_str(), true, Pixels(10.0)),
             ],
             row![
-                get_text("Maximum:", false),
-                get_text_size(self.column_stadistics.maximum.as_str(), true, Pixels(10.0)),
+                horizontal_space(),
+                horizontal_space(),
                 TAB_SPACE,
                 get_text("Std Dev:", false),
                 get_text_size(self.column_stadistics.std_dev.as_str(), true, Pixels(10.0)),

@@ -36,10 +36,11 @@ impl PartialEq for DataType {
 }
 
 pub fn get_column_type(column: &Vec<String>) -> DataType {
-    let date_re = Regex::new(r"^\d{4}-\d{2}-\d{2}$").unwrap();
+    let date_re = Regex::new(r"^\d{4}-\d{2}-\d{2}$|^\d{2}/\d{2}/\d{4}$").unwrap();
     let time_re = Regex::new(r"^\d{2}:\d{2}(:\d{2})?$").unwrap();
     let datetime_re = Regex::new(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$").unwrap();
-    let coordinates_re = Regex::new(r"^-?\d+\.\d+,\s*-?\d+\.\d+$").unwrap();
+    let coordinates_re =
+        Regex::new(r"^-?\d+\.\d+,\s*-?\d+\.\d+$|^\(-?\d+\.\d+,\s*-?\d+\.\d+\)$").unwrap();
 
     let mut type_counts: HashMap<DataType, usize> = HashMap::new();
 
