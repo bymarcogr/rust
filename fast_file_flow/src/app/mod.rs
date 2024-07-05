@@ -168,7 +168,7 @@ impl iced::Application for FastFileFlow {
             FastFileFlowMessage::Tick(progress) => {
                 if self.running {
                     self.progress = progress;
-                    println!("Tick - {}", progress)
+                    //println!("Tick - {}", progress)
                 }
                 Command::none()
             }
@@ -190,6 +190,7 @@ impl iced::Application for FastFileFlow {
                 )
             }
             FastFileFlowMessage::SetStadisticsFile(stadistics_file) => {
+                print!("SetStadisticsFile");
                 self.column_stadistics = stadistics_file;
                 self.enable_loading(false);
                 Command::none()
