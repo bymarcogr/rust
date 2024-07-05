@@ -7,7 +7,7 @@ pub enum DataClassification {
     Quantitative,
 }
 
-pub fn column_classification(column: Vec<String>) -> DataClassification {
+pub fn get_column_classification(column: &Vec<String>) -> DataClassification {
     let mut counts: HashMap<DataClassification, usize> = HashMap::new();
     for value in column {
         let data_type = if value.parse::<f64>().is_ok() {

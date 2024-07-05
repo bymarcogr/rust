@@ -1,5 +1,5 @@
 use crate::app::FastFileFlowMessage;
-use crate::util::{wrap_tooltip, wrap_tooltip_with_position};
+use crate::util::wrap_tooltip_with_position;
 use iced::widget::{container, text};
 use iced::{Element, Length, Theme};
 use iced_table::table;
@@ -9,7 +9,6 @@ use iced_widget::{tooltip, Button, Text};
 pub struct IcedRow {
     pub values: Vec<String>,
     pub is_enabled: bool,
-    pub column_index: u32,
     pub row_index: u32,
 }
 
@@ -18,15 +17,13 @@ impl IcedRow {
         Self {
             is_enabled: true,
             values: vec![],
-            column_index: 0,
             row_index: 0,
         }
     }
-    pub fn new(values: Vec<String>, column: u32, row: u32) -> Self {
+    pub fn new(values: Vec<String>, row: u32) -> Self {
         Self {
             is_enabled: true,
             values,
-            column_index: column,
             row_index: row,
         }
     }

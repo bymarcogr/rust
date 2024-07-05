@@ -1,10 +1,6 @@
-use std::{thread::sleep, time::Duration};
-
-use data_classification::DataClassification;
-use data_type::DataType;
-use iced_table::table::Column;
-
 use crate::dynamictable::IcedColumn;
+use data_classification::{get_column_classification, DataClassification};
+use data_type::{get_column_type, DataType};
 
 pub mod data_classification;
 pub mod data_type;
@@ -48,11 +44,10 @@ impl Stadistics {
             header: String::default(),
         }
     }
-    pub async fn new(selected_column: IcedColumn) -> Self {
-        sleep(Duration::from_millis(5000));
+    pub async fn new(selected_column: &IcedColumn, full_column: Vec<String>) -> Self {
         Self {
-            classification: DataClassification::Unknown,
-            data_type: DataType::Unknown,
+            classification: get_column_classification(&full_column),
+            data_type: get_column_type(&full_column),
             distinct: String::default(),
             most_repeated: String::default(),
             minimum: String::default(),
@@ -65,7 +60,7 @@ impl Stadistics {
             quartil: String::default(),
             std_dev: String::default(),
             index: 0,
-            header: selected_column.column_header,
+            header: selected_column.column_header.clone(),
         }
     }
 }

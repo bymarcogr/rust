@@ -15,7 +15,11 @@ use tokio::{
     io::{AsyncBufReadExt, AsyncReadExt, BufReader},
 };
 
-use crate::dynamictable::{IcedColumn, IcedRow};
+use crate::{
+    constants::path::CSV,
+    dynamictable::{IcedColumn, IcedRow},
+    stadistics::Stadistics,
+};
 #[derive(Debug, Clone)]
 pub struct StoredFile {
     pub file_path: String,
@@ -45,7 +49,7 @@ impl StoredFile {
     pub async fn new(file_path: String) -> Self {
         let format = Self::get_file_extension(&file_path);
         let sintaxis = Self::detect_file_type(&file_path).await;
-        if format != "CSV" || sintaxis != FileType::CSV {
+        if format != CSV || sintaxis != FileType::CSV {
             Self {
                 file_path: file_path.clone(),
                 file_name: Self::get_file_name(&file_path),
@@ -134,7 +138,7 @@ impl StoredFile {
                 }
                 let record = record.unwrap();
                 let values: Vec<String> = record.iter().map(|s| s.to_string()).collect();
-                records_vec.push(IcedRow::new(values, 1 as u32, row_index));
+                records_vec.push(IcedRow::new(values, row_index));
                 row_index += 1;
             }
             records_vec
@@ -186,5 +190,33 @@ impl StoredFile {
         }
 
         FileType::Unknown
+    }
+
+    pub async fn get_full_column(&self, column_index: &usize) -> Vec<String> {
+        let mut rdr =
+            csv_async::AsyncReader::from_reader(File::open(&self.file_path).await.unwrap());
+        let index: usize = *column_index;
+        let handle_records = tokio::spawn(async move {
+            let mut records_vec = Vec::new();
+            let mut records = rdr.records();
+
+            while let Some(record) = records.next().await {
+                let value = record.unwrap().get(index).unwrap().to_string();
+                records_vec.push(value);
+            }
+            records_vec
+        });
+
+        let records_vec = handle_records.await.unwrap();
+
+        records_vec
+    }
+
+    pub async fn get_stadistics(&self, column_index: &usize) -> Stadistics {
+        Stadistics::new(
+            self.columns.headers.get(column_index.clone()).unwrap(),
+            self.get_full_column(column_index).await,
+        )
+        .await
     }
 }

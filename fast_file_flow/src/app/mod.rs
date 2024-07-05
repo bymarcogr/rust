@@ -7,9 +7,11 @@ use crate::stored_file::StoredFile;
 use crate::util::{
     get_full_directory, get_logo, get_menu_button, get_text, get_text_size, wrap_tooltip,
 };
+use futures::executor::block_on;
 use iced::Subscription;
 use iced_futures::subscription;
 use iced_table::table;
+use std::borrow::Borrow;
 use std::time::Duration;
 
 use iced::widget::{
@@ -180,18 +182,18 @@ impl iced::Application for FastFileFlow {
 
             FastFileFlowMessage::HeaderClicked(column_index) => {
                 self.enable_loading(true);
-
                 let header = self.columns.get(column_index).unwrap();
                 println!(
                     "Header clicked: {} - {}",
                     column_index, header.column_header
                 );
 
-                Command::perform(Stadistics::new(header.clone()), |stadistics_file| {
-                    FastFileFlowMessage::SetStadisticsFile(stadistics_file)
-                })
-                // Realiza alguna acción al hacer clic en el encabezado
-                //Command::none()
+                //let column = block_on(self.selected_file.get_full_column(column_index));
+                let selected_file = self.selected_file.clone();
+                Command::perform(
+                    async move { selected_file.get_stadistics(&column_index).await },
+                    |stadistics_file| FastFileFlowMessage::SetStadisticsFile(stadistics_file),
+                )
             }
             FastFileFlowMessage::SetStadisticsFile(stadistics_file) => {
                 self.column_stadistics = stadistics_file;
