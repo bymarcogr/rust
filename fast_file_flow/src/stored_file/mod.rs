@@ -213,7 +213,6 @@ impl StoredFile {
     }
 
     pub async fn get_stadistics(&self, column_index: &usize) -> Stadistics {
-        print!("get_stadistics");
         Stadistics::new(
             self.columns.headers.get(column_index.clone()).unwrap(),
             self.get_full_column(column_index).await,

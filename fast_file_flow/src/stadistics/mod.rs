@@ -216,7 +216,7 @@ impl Stadistics {
         let std_dev_value = variance_value.sqrt();
         let duration = start.elapsed();
 
-        println!("Tiempo de ejecución: {:?}", duration.as_secs());
+        println!("Execution time: {:?}", duration.as_millis());
         (
             distinct_count,
             max,

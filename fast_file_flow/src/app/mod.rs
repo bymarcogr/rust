@@ -190,7 +190,6 @@ impl iced::Application for FastFileFlow {
                 )
             }
             FastFileFlowMessage::SetStadisticsFile(stadistics_file) => {
-                ln!("SetStadisticsFile");
                 self.column_stadistics = stadistics_file;
                 self.enable_loading(false);
                 Command::none()
@@ -516,9 +515,9 @@ impl FastFileFlow {
                     Pixels(PANEL_FONT_SIZE)
                 ),
                 TAB_SPACE,
-                get_text("Percentil:", false),
+                get_text("Std Dev:", false),
                 get_text_size(
-                    self.column_stadistics.percentil.as_str(),
+                    self.column_stadistics.std_dev.as_str(),
                     true,
                     Pixels(PANEL_FONT_SIZE)
                 ),
@@ -531,12 +530,12 @@ impl FastFileFlow {
                     Pixels(PANEL_FONT_SIZE)
                 ),
                 TAB_SPACE,
-                get_text("Quatril:", false),
+                get_text("Percentil:", false),
                 get_text_size(
-                    self.column_stadistics.quartil.as_str(),
+                    self.column_stadistics.percentil.as_str(),
                     true,
                     Pixels(PANEL_FONT_SIZE)
-                ),
+                )
             ],
             row![
                 get_text("Mode:", false),
@@ -546,12 +545,12 @@ impl FastFileFlow {
                     Pixels(PANEL_FONT_SIZE)
                 ),
                 TAB_SPACE,
-                get_text("Std Dev:", false),
+                get_text("Quatril:", false),
                 get_text_size(
-                    self.column_stadistics.std_dev.as_str(),
+                    self.column_stadistics.quartil.as_str(),
                     true,
                     Pixels(PANEL_FONT_SIZE)
-                ),
+                )
             ],
         ];
         let container_analysis = create_section_container(panel_column_analysis);
