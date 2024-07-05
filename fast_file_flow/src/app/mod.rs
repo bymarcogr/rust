@@ -1,6 +1,8 @@
 use crate::constants::english::*;
 use crate::constants::icons::*;
-use crate::constants::sizes::{FONT_NAME, PANEL_HEIGHT, PANEL_WIDTH, SEARCH_TEXTBOX_WIDTH};
+use crate::constants::sizes::{
+    FONT_NAME, PANEL_FONT_SIZE, PANEL_HEIGHT, PANEL_WIDTH, SEARCH_TEXTBOX_WIDTH,
+};
 use crate::dynamictable::{IcedColumn, IcedRow};
 use crate::stadistics::Stadistics;
 use crate::stored_file::StoredFile;
@@ -368,7 +370,7 @@ impl FastFileFlow {
         );
         let selected_file = Text::new(self.file_loaded.as_str())
             .width(PANEL_WIDTH)
-            .size(Pixels(10.0));
+            .size(Pixels(PANEL_FONT_SIZE));
 
         let progress = progress_bar(0.0..=100.0, self.progress).height(15.0);
 
@@ -450,61 +452,105 @@ impl FastFileFlow {
                 get_text_size(
                     self.column_stadistics.header.to_string(),
                     true,
-                    Pixels(10.0)
+                    Pixels(PANEL_FONT_SIZE)
                 ),
                 TAB_SPACE,
                 get_text("Mean:", false),
-                get_text_size(self.column_stadistics.mean.as_str(), true, Pixels(10.0))
+                get_text_size(
+                    self.column_stadistics.mean.as_str(),
+                    true,
+                    Pixels(PANEL_FONT_SIZE)
+                )
             ],
             row![
                 get_text("Datatype:", false),
                 get_text_size(
                     self.column_stadistics.data_type.to_string(),
                     true,
-                    Pixels(10.0)
+                    Pixels(PANEL_FONT_SIZE)
                 ),
                 TAB_SPACE,
                 get_text("Median:", false),
-                get_text_size(self.column_stadistics.median.as_str(), true, Pixels(10.0))
+                get_text_size(
+                    self.column_stadistics.median.as_str(),
+                    true,
+                    Pixels(PANEL_FONT_SIZE)
+                )
             ],
             row![
                 get_text("Class:", false),
                 get_text_size(
                     self.column_stadistics.classification.to_string(),
                     true,
-                    Pixels(10.0)
+                    Pixels(PANEL_FONT_SIZE)
                 ),
                 TAB_SPACE,
-                get_text("Mode:", false),
-                get_text_size(self.column_stadistics.mode.as_str(), true, Pixels(10.0)),
+                get_text("Range:", false),
+                get_text_size(
+                    self.column_stadistics.range.as_str(),
+                    true,
+                    Pixels(PANEL_FONT_SIZE)
+                ),
             ],
             row![
                 get_text("Distinct:", false),
-                get_text_size(self.column_stadistics.distinct.as_str(), true, Pixels(10.0)),
+                get_text_size(
+                    self.column_stadistics.distinct.as_str(),
+                    true,
+                    Pixels(PANEL_FONT_SIZE)
+                ),
                 TAB_SPACE,
-                get_text("Range:", false),
-                get_text_size(self.column_stadistics.range.as_str(), true, Pixels(10.0)),
+                get_text("Variance:", false),
+                get_text_size(
+                    self.column_stadistics.variance.as_str(),
+                    true,
+                    Pixels(PANEL_FONT_SIZE)
+                ),
             ],
             row![
                 get_text("Minimum:", false),
-                get_text_size(self.column_stadistics.minimum.as_str(), true, Pixels(10.0)),
+                get_text_size(
+                    self.column_stadistics.minimum.as_str(),
+                    true,
+                    Pixels(PANEL_FONT_SIZE)
+                ),
                 TAB_SPACE,
-                get_text("Variance:", false),
-                get_text_size(self.column_stadistics.variance.as_str(), true, Pixels(10.0)),
+                get_text("Percentil:", false),
+                get_text_size(
+                    self.column_stadistics.percentil.as_str(),
+                    true,
+                    Pixels(PANEL_FONT_SIZE)
+                ),
             ],
             row![
                 get_text("Maximum:", false),
-                get_text_size(self.column_stadistics.maximum.as_str(), true, Pixels(10.0)),
+                get_text_size(
+                    self.column_stadistics.maximum.as_str(),
+                    true,
+                    Pixels(PANEL_FONT_SIZE)
+                ),
                 TAB_SPACE,
                 get_text("Quatril:", false),
-                get_text_size(self.column_stadistics.quartil.as_str(), true, Pixels(10.0)),
+                get_text_size(
+                    self.column_stadistics.quartil.as_str(),
+                    true,
+                    Pixels(PANEL_FONT_SIZE)
+                ),
             ],
             row![
-                horizontal_space(),
-                horizontal_space(),
+                get_text("Mode:", false),
+                get_text_size(
+                    self.column_stadistics.mode.as_str(),
+                    true,
+                    Pixels(PANEL_FONT_SIZE)
+                ),
                 TAB_SPACE,
                 get_text("Std Dev:", false),
-                get_text_size(self.column_stadistics.std_dev.as_str(), true, Pixels(10.0)),
+                get_text_size(
+                    self.column_stadistics.std_dev.as_str(),
+                    true,
+                    Pixels(PANEL_FONT_SIZE)
+                ),
             ],
         ];
         let container_analysis = create_section_container(panel_column_analysis);
