@@ -4,10 +4,14 @@ use data_classification::DataClassification;
 use data_type::DataType;
 use num_format::{Locale, ToFormattedString};
 use regex::Regex;
-use statistical::{mean, median, standard_deviation, variance};
-use std::collections::{HashMap, HashSet};
+use std::{
+    collections::{HashMap, HashSet},
+    time::Instant,
+};
 pub mod data_classification;
 pub mod data_type;
+use ndarray::{Array1, ArrayView1};
+use rayon::prelude::*;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Stadistics {
@@ -47,11 +51,8 @@ impl Stadistics {
         }
     }
     pub async fn new(selected_column: &IcedColumn, full_column: Vec<String>) -> Self {
-        println!("waiting analisys");
         let (classification, data_type) = Self::get_column_analysis(&full_column);
-        println!("loading");
         if classification == DataClassification::Quantitative {
-            println!("quantitativa");
             let (
                 distinct_values,
                 max,
@@ -82,7 +83,6 @@ impl Stadistics {
                 std_dev: format!("{:.6}", std_dev_value),
             }
         } else {
-            println!("quantitativo");
             let (
                 distinct_values,
                 mode_value,
@@ -173,16 +173,14 @@ impl Stadistics {
     pub fn get_analysis_numeric(
         column: &Vec<String>,
     ) -> (usize, f64, f64, f64, f64, f64, f64, f64, f64, f64, f64) {
-        println!("Filtering");
+        let start = Instant::now();
         let data: Vec<f64> = column
             .iter()
             .filter(|s| !s.is_empty())
             .filter_map(|s| s.parse::<f64>().ok())
             .collect();
-        println!("data");
         let distinct_values: HashSet<_> = data.iter().map(|&x| x.to_bits()).collect();
         let distinct_count = distinct_values.len();
-        println!("distinct {}", distinct_count);
         // Most repeated value (mode)
         let mut occurrences = HashMap::new();
         for &value in &data {
@@ -194,41 +192,36 @@ impl Stadistics {
             .map(|(val, _)| f64::from_bits(val))
             .unwrap_or(f64::NAN);
 
-        println!("mode {}", mode_value);
         // Basic statistics
         let max = *data
             .iter()
             .max_by(|a, b| a.partial_cmp(b).unwrap())
             .unwrap();
-        println!("max {}", max);
+
         let min = *data
             .iter()
             .min_by(|a, b| a.partial_cmp(b).unwrap())
             .unwrap();
-        println!("min {}", min);
-        let mean_value = mean(&data);
-        println!("mean {}", mean_value);
-        let median_value = median(&data);
-        println!("median {}", median_value);
-        let variance_value = variance(&data, None);
-        println!("variance {}", variance_value);
-        let std_dev_value = standard_deviation(&data, None);
-        println!("std dev {}", std_dev_value);
+
         let range = max - min;
-        println!("range {}", range);
 
         let mut sorted_data = data.clone();
         sorted_data.sort_by(|a, b| a.partial_cmp(b).unwrap());
-        println!("sorted");
         let q1 = Self::calculate_quantile(&sorted_data, 0.25);
-        println!("q1 {}", q1);
         let q3 = Self::calculate_quantile(&sorted_data, 0.75);
-        println!("q3 {}", q3);
+        let new_array = ndarray::Array1::from(data);
+        let mean_value = &new_array.mean().unwrap();
+        let median_value = Self::calculate_median(new_array.view());
+        let variance_value = Self::manual_variance(&new_array);
+        let std_dev_value = variance_value.sqrt();
+        let duration = start.elapsed();
+
+        println!("Tiempo de ejecución: {:?}", duration.as_secs());
         (
             distinct_count,
             max,
             min,
-            mean_value,
+            *mean_value,
             median_value,
             mode_value,
             range,
@@ -237,6 +230,27 @@ impl Stadistics {
             q1,
             q3,
         )
+    }
+
+    fn manual_variance(data: &Array1<f64>) -> f64 {
+        let mean = data.mean().unwrap();
+        let len = data.len() as f64;
+        let sum: f64 = data
+            .par_iter() // Usar iterador paralelo
+            .map(|&x| (x - mean).powi(2))
+            .sum();
+        sum / len
+    }
+    fn calculate_median(data: ArrayView1<f64>) -> f64 {
+        let mut sorted_data: Vec<f64> = data.to_vec();
+        sorted_data.sort_by(|a, b| a.partial_cmp(b).unwrap());
+
+        let len = sorted_data.len();
+        if len % 2 == 0 {
+            (sorted_data[len / 2 - 1] + sorted_data[len / 2]) / 2.0
+        } else {
+            sorted_data[len / 2]
+        }
     }
 
     fn calculate_quantile(sorted_data: &[f64], quantile: f64) -> f64 {

@@ -190,7 +190,7 @@ impl iced::Application for FastFileFlow {
                 )
             }
             FastFileFlowMessage::SetStadisticsFile(stadistics_file) => {
-                print!("SetStadisticsFile");
+                ln!("SetStadisticsFile");
                 self.column_stadistics = stadistics_file;
                 self.enable_loading(false);
                 Command::none()
