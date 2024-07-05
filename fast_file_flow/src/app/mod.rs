@@ -53,6 +53,7 @@ pub enum FastFileFlowMessage {
     Tick(f32),
     SetSelectedFile(StoredFile),
     HeaderClicked(usize),
+    HeaderCheckBoxToggled(usize, bool),
     FilterButtonClick(),
     ProcessButtonClick(),
     AddButtonClick(),
@@ -147,7 +148,7 @@ impl iced::Application for FastFileFlow {
             FastFileFlowMessage::LoadFileButtonClick(is_refresh) => {
                 self.enable_loading(true);
 
-                let mut path = String::new();
+                let mut path = String::default();
                 if is_refresh {
                     path = String::from(self.file_loaded.clone());
                 } else {
@@ -181,6 +182,7 @@ impl iced::Application for FastFileFlow {
             }
 
             FastFileFlowMessage::HeaderClicked(column_index) => {
+                self.progress = 0.0;
                 self.enable_loading(true);
 
                 let selected_file = self.selected_file.clone();
@@ -194,7 +196,10 @@ impl iced::Application for FastFileFlow {
                 self.enable_loading(false);
                 Command::none()
             }
-
+            FastFileFlowMessage::HeaderCheckBoxToggled(index, toggle) => {
+                self.columns.get_mut(index).unwrap().is_checked = toggle;
+                Command::none()
+            }
             FastFileFlowMessage::FilterButtonClick() => {
                 self.clicked_button = String::from("Filter Button Clicked");
                 Command::none()
@@ -674,6 +679,7 @@ impl FastFileFlow {
                 table.on_column_resize(FastFileFlowMessage::Resizing, FastFileFlowMessage::Resized);
 
             table = table.min_width(size.width);
+            table = table.footer(self.footer.clone());
 
             table.into()
         });

@@ -1,9 +1,9 @@
 use crate::app::FastFileFlowMessage;
 use crate::util::wrap_tooltip_with_position;
 use iced::widget::{container, text};
-use iced::{Element, Length, Theme};
+use iced::{Element, Length, Padding, Pixels, Theme};
 use iced_table::table;
-use iced_widget::{tooltip, Button, Text};
+use iced_widget::{checkbox, column, row, tooltip, Button, Text};
 
 #[derive(Debug, Clone)]
 pub struct IcedRow {
@@ -34,6 +34,7 @@ pub struct IcedColumn {
     pub column_header: String,
     pub width: f32,
     pub resize_offset: Option<f32>,
+    pub is_checked: bool,
 }
 
 impl IcedColumn {
@@ -44,6 +45,7 @@ impl IcedColumn {
             column_header,
             width,
             resize_offset: None,
+            is_checked: false,
         }
     }
 }
@@ -52,17 +54,29 @@ impl<'a> table::Column<'a, FastFileFlowMessage, Theme, iced::Renderer> for IcedC
     type Row = IcedRow;
 
     fn header(&'a self, _col_index: usize) -> Element<'a, FastFileFlowMessage> {
-        let tooltip: &'static str = Box::leak(Box::new(String::from(self.column_header.clone())));
+        let checkbox = checkbox("", self.is_checked)
+            .size(Pixels(14.0))
+            .spacing(Pixels(1.0))
+            .on_toggle(move |is_checked| {
+                FastFileFlowMessage::HeaderCheckBoxToggled(_col_index, is_checked)
+            });
 
-        let button = wrap_tooltip_with_position(
-            Button::new(Text::new(self.column_header.clone()))
-                .on_press(FastFileFlowMessage::HeaderClicked(_col_index))
-                .into(),
+        let button = Button::new(Text::new(self.column_header.clone()).size(Pixels(11.0)))
+            .on_press(FastFileFlowMessage::HeaderClicked(_col_index));
+
+        let header = row![
+            (column![checkbox]).padding(Padding::from([3, 0, 0, 0])),
+            column![button]
+        ];
+
+        let tooltip: &'static str = Box::leak(Box::new(String::from(self.column_header.clone())));
+        let wrapped_button = wrap_tooltip_with_position(
+            header.align_items(iced::Alignment::Start).into(),
             tooltip,
             tooltip::Position::Top,
         );
 
-        container(button)
+        container(wrapped_button)
             .height(32)
             .width(Length::Fill)
             .center_y()
@@ -94,8 +108,15 @@ impl<'a> table::Column<'a, FastFileFlowMessage, Theme, iced::Renderer> for IcedC
         _col_index: usize,
         rows: &'a [Self::Row],
     ) -> Option<Element<'a, FastFileFlowMessage>> {
-        let total_enabled = rows.iter().filter(|row| row.is_enabled).count();
-        let content = Element::from(text(format!("Total Enabled: {total_enabled}")));
+        let values = rows.get(_col_index).unwrap().clone();
+        let total_enabled = values
+            .values
+            .iter()
+            .filter(|s| !s.is_empty())
+            .into_iter()
+            .count();
+
+        let content = Element::from(text(format!("{total_enabled}")).size(Pixels(10.0)));
         Some(container(content).height(24).center_y().into())
     }
 
