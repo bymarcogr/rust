@@ -215,8 +215,8 @@ impl Stadistics {
         let variance_value = Self::manual_variance(&new_array);
         let std_dev_value = variance_value.sqrt();
         let duration = start.elapsed();
-
         println!("Analysis Execution time: {:?}", duration.as_secs_f64());
+
         (
             distinct_count,
             max,

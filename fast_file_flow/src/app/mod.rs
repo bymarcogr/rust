@@ -5,6 +5,7 @@ use crate::constants::sizes::{
 };
 use crate::correlation_analysis::CorrelationAnalysis;
 use crate::dynamictable::{IcedColumn, IcedRow};
+use crate::stadistics::data_classification::DataClassification;
 use crate::stadistics::Stadistics;
 use crate::stored_file::StoredFile;
 use crate::util::{
@@ -54,7 +55,7 @@ pub enum FastFileFlowMessage {
     LoadFileButtonClick(bool),
     Tick(f32),
     SetSelectedFile(StoredFile),
-    SetStadisticsFile(Stadistics),
+    SetStadisticsFile(usize, Stadistics),
     HeaderClicked(usize),
     HeaderCheckBoxToggled(usize, bool),
     SetCorrelationFile(CorrelationAnalysis),
@@ -166,6 +167,7 @@ impl iced::Application for FastFileFlow {
                         FastFileFlowMessage::SetSelectedFile(stored_file)
                     })
                 } else {
+                    self.enable_loading(false);
                     Command::none()
                 }
             }
@@ -189,14 +191,31 @@ impl iced::Application for FastFileFlow {
                 self.progress = 0.0;
                 self.enable_loading(true);
 
-                let selected_file = self.selected_file.clone();
-                Command::perform(
-                    async move { selected_file.get_stadistics(&column_index).await },
-                    |stadistics_file| FastFileFlowMessage::SetStadisticsFile(stadistics_file),
-                )
+                let current_stadistics = self
+                    .columns
+                    .get_mut(column_index)
+                    .unwrap()
+                    .stadistics
+                    .clone();
+
+                if current_stadistics.classification == DataClassification::Unknown {
+                    let selected_file = self.selected_file.clone();
+                    Command::perform(
+                        async move { selected_file.get_stadistics(&column_index).await },
+                        move |stadistics_file| {
+                            FastFileFlowMessage::SetStadisticsFile(column_index, stadistics_file)
+                        },
+                    )
+                } else {
+                    println!("Already exists");
+                    self.column_stadistics = current_stadistics.clone();
+                    self.enable_loading(false);
+                    Command::none()
+                }
             }
-            FastFileFlowMessage::SetStadisticsFile(stadistics_file) => {
-                self.column_stadistics = stadistics_file;
+            FastFileFlowMessage::SetStadisticsFile(index, stadistics_file) => {
+                self.column_stadistics = stadistics_file.clone();
+                self.columns.get_mut(index).unwrap().stadistics = stadistics_file;
                 self.enable_loading(false);
                 Command::none()
             }

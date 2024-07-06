@@ -21,6 +21,7 @@ use std::{fs::metadata, io::Cursor, path::Path};
 use tokio::{
     fs::File,
     io::{AsyncBufReadExt, AsyncReadExt, BufReader},
+    time::Instant,
 };
 #[derive(Debug, Clone)]
 pub struct StoredFile {
@@ -119,6 +120,7 @@ impl StoredFile {
 
     #[warn(unused_assignments)]
     async fn get_rows(file_path: &str) -> RowStored {
+        let start = Instant::now();
         let mut rdr = csv_async::AsyncReader::from_reader(File::open(file_path).await.unwrap());
         let mut rdr_count =
             csv_async::AsyncReader::from_reader(File::open(file_path).await.unwrap());
@@ -147,8 +149,12 @@ impl StoredFile {
 
         let counter = handle_count.await.unwrap();
         let records_vec = handle_records.await.unwrap();
-
-        println!("Rows {}", counter);
+        let duration = start.elapsed();
+        println!(
+            "Rows {} Execution time: {:?}",
+            counter,
+            duration.as_secs_f64()
+        );
         RowStored::new(counter, records_vec)
     }
 
@@ -249,6 +255,7 @@ impl StoredFile {
         )
         .await
     }
+
     pub async fn get_correlation(
         &self,
         column_base: &usize,

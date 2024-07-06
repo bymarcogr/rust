@@ -1,4 +1,5 @@
 use crate::app::FastFileFlowMessage;
+use crate::stadistics::Stadistics;
 use crate::util::wrap_tooltip_with_position;
 use iced::widget::{container, text};
 use iced::{Element, Length, Padding, Pixels, Theme};
@@ -35,6 +36,7 @@ pub struct IcedColumn {
     pub width: f32,
     pub resize_offset: Option<f32>,
     pub is_checked: bool,
+    pub stadistics: Stadistics,
 }
 
 impl IcedColumn {
@@ -46,6 +48,7 @@ impl IcedColumn {
             width,
             resize_offset: None,
             is_checked: false,
+            stadistics: Stadistics::default(),
         }
     }
 }
