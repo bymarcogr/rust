@@ -1,57 +1,14 @@
 use crate::app::FastFileFlowMessage;
-use crate::stadistics::Stadistics;
 use crate::util::wrap_tooltip_with_position;
 use iced::widget::{container, text};
 use iced::{Element, Length, Padding, Pixels, Theme};
+use iced_column::IcedColumn;
+use iced_row::IcedRow;
 use iced_table::table;
 use iced_widget::{checkbox, column, row, tooltip, Button, Text};
-
-#[derive(Debug, Clone)]
-pub struct IcedRow {
-    pub values: Vec<String>,
-    pub is_enabled: bool,
-    pub row_index: u32,
-}
-
-impl IcedRow {
-    pub fn empty() -> Self {
-        Self {
-            is_enabled: true,
-            values: vec![],
-            row_index: 0,
-        }
-    }
-    pub fn new(values: Vec<String>, row: u32) -> Self {
-        Self {
-            is_enabled: true,
-            values,
-            row_index: row,
-        }
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct IcedColumn {
-    pub column_header: String,
-    pub width: f32,
-    pub resize_offset: Option<f32>,
-    pub is_checked: bool,
-    pub stadistics: Stadistics,
-}
-
-impl IcedColumn {
-    pub fn new(column_header: String) -> Self {
-        let width = 100.0;
-
-        Self {
-            column_header,
-            width,
-            resize_offset: None,
-            is_checked: false,
-            stadistics: Stadistics::default(),
-        }
-    }
-}
+pub mod iced_column;
+pub mod iced_row;
+pub mod simple_column;
 
 impl<'a> table::Column<'a, FastFileFlowMessage, Theme, iced::Renderer> for IcedColumn {
     type Row = IcedRow;

@@ -4,7 +4,9 @@ use crate::constants::sizes::{
     FONT_NAME, PANEL_FONT_SIZE, PANEL_HEIGHT, PANEL_WIDTH, SEARCH_TEXTBOX_WIDTH,
 };
 use crate::correlation_analysis::CorrelationAnalysis;
-use crate::dynamictable::{IcedColumn, IcedRow};
+use crate::dynamictable::iced_column::IcedColumn;
+use crate::dynamictable::iced_row::IcedRow;
+use crate::dynamictable::simple_column::SimpleColumn;
 use crate::stadistics::data_classification::DataClassification;
 use crate::stadistics::Stadistics;
 use crate::stored_file::StoredFile;
@@ -15,6 +17,7 @@ use iced::Subscription;
 use iced_futures::subscription;
 use iced_table::table;
 use std::time::Duration;
+use tokio::spawn;
 
 use iced::widget::{
     column, container, horizontal_space, progress_bar, responsive, row, scrollable, text,
@@ -43,6 +46,7 @@ pub struct FastFileFlow {
     file_loaded: String,
     progress: f32,
     running: bool,
+    header_checked: Vec<SimpleColumn>,
 }
 
 // Mensajes para la actualización de la GUI
@@ -108,6 +112,7 @@ impl iced::Application for FastFileFlow {
 
                 progress: 0.0,
                 running: false,
+                header_checked: vec![],
             },
             Command::none(),
         )
@@ -220,13 +225,59 @@ impl iced::Application for FastFileFlow {
                 Command::none()
             }
             FastFileFlowMessage::HeaderCheckBoxToggled(index, toggle) => {
-                self.enable_loading(true);
-                self.columns.get_mut(index).unwrap().is_checked = toggle;
-                let selected_file = self.selected_file.clone();
-                Command::perform(
-                    async move { selected_file.get_correlation(&4, &5).await },
-                    |correlation_file| FastFileFlowMessage::SetCorrelationFile(correlation_file),
-                )
+                if toggle {
+                    FastFileFlowMessage::HeaderClicked(index);
+                    if self.header_checked.len() == 2_usize {
+                        let item_deselect = self.header_checked.pop();
+                        self.columns
+                            .get_mut(item_deselect.unwrap().index)
+                            .unwrap()
+                            .is_checked = false;
+                    }
+
+                    if self.header_checked.len() <= 1_usize {
+                        self.enable_loading(true);
+                        let column = self.columns.get_mut(index).unwrap();
+
+                        self.header_checked.push(SimpleColumn {
+                            index,
+                            header: column.column_header.clone(),
+                            classification: column.stadistics.classification.clone(),
+                        });
+
+                        column.is_checked = toggle;
+                    }
+                    if self.header_checked.len() == 2_usize {
+                        let index1 = self.header_checked.get(0).unwrap().index;
+                        let index2 = self.header_checked.get(1).unwrap().index;
+
+                        let selected_file = self.selected_file.clone();
+
+                        Command::perform(
+                            async move { selected_file.get_correlation(&index1, &index2).await },
+                            |correlation_file| {
+                                FastFileFlowMessage::SetCorrelationFile(correlation_file)
+                            },
+                        )
+                    } else {
+                        self.enable_loading(false);
+                        Command::none()
+                    }
+                } else {
+                    let item_deselect = self.header_checked.pop().unwrap();
+                    if item_deselect.index == index {
+                        self.columns
+                            .get_mut(item_deselect.index)
+                            .unwrap()
+                            .is_checked = false;
+                    } else {
+                        let remove = self.header_checked.pop().unwrap();
+                        self.header_checked.push(item_deselect);
+                        self.columns.get_mut(remove.index).unwrap().is_checked = false;
+                    }
+
+                    Command::none()
+                }
             }
             FastFileFlowMessage::SetCorrelationFile(correlation_file) => {
                 self.correlation_file = correlation_file;
@@ -620,6 +671,28 @@ impl FastFileFlow {
                 get_text("Covariance", false),
                 get_text_size(
                     self.correlation_file.covariance.to_string(),
+                    true,
+                    Pixels(PANEL_FONT_SIZE)
+                )
+            ],
+            row![
+                get_text("Columna 1", false),
+                get_text_size(
+                    self.header_checked
+                        .get(0)
+                        .map(|h| h.header.to_string())
+                        .unwrap_or_else(|| "".to_string()),
+                    true,
+                    Pixels(PANEL_FONT_SIZE)
+                )
+            ],
+            row![
+                get_text("Columna 2", false),
+                get_text_size(
+                    self.header_checked
+                        .get(1)
+                        .map(|h| h.header.to_string())
+                        .unwrap_or_else(|| "".to_string()),
                     true,
                     Pixels(PANEL_FONT_SIZE)
                 )

@@ -1,6 +1,8 @@
 use std::time::Instant;
 
 use tokio::join;
+
+use crate::stadistics::data_classification::DataClassification;
 #[derive(Debug, Clone)]
 pub struct CorrelationAnalysis {
     pub spearman_correlation: f64,
@@ -17,8 +19,16 @@ impl CorrelationAnalysis {
         }
     }
 
-    pub async fn new(column_base: &Vec<f64>, column_compare: &Vec<f64>) -> Self {
+    pub async fn new(
+        column_base: &Vec<f64>,
+        base_type: DataClassification,
+        column_compare: &Vec<f64>,
+        compare_class: DataClassification,
+    ) -> Self {
         let start = Instant::now();
+
+        // transformacion de columna
+
         let (spearman, pearson, cov) = join!(
             Self::spearman_correlation(column_base, column_compare),
             Self::pearson_correlation(column_base, column_compare),

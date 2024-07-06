@@ -1,7 +1,7 @@
 extern crate statistical;
-use crate::dynamictable::IcedColumn;
 use data_classification::DataClassification;
 use data_type::DataType;
+use dynamictable::iced_column::IcedColumn;
 use num_format::{Locale, ToFormattedString};
 use regex::Regex;
 use std::{
@@ -12,6 +12,8 @@ pub mod data_classification;
 pub mod data_type;
 use ndarray::{Array1, ArrayView1};
 use rayon::prelude::*;
+
+use crate::dynamictable;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Stadistics {
@@ -115,7 +117,7 @@ impl Stadistics {
         }
     }
 
-    fn get_column_analysis(column: &Vec<String>) -> (DataClassification, DataType) {
+    pub fn get_column_analysis(column: &Vec<String>) -> (DataClassification, DataType) {
         let date_re = Regex::new(r"^\d{4}-\d{2}-\d{2}$|^\d{2}/\d{2}/\d{4}$").unwrap();
         let time_re = Regex::new(r"^\d{2}:\d{2}(:\d{2})?$").unwrap();
         let datetime_re = Regex::new(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$").unwrap();

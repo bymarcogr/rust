@@ -1,4 +1,6 @@
-use crate::dynamictable::IcedRow;
+use dynamictable::iced_row::IcedRow;
+
+use crate::dynamictable;
 
 #[derive(Debug, Clone)]
 pub struct RowStored {

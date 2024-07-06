@@ -5,8 +5,8 @@ pub mod row_stored;
 use crate::{
     constants::path::CSV,
     correlation_analysis::CorrelationAnalysis,
-    dynamictable::{IcedColumn, IcedRow},
-    stadistics::Stadistics,
+    dynamictable::{iced_column::IcedColumn, iced_row::IcedRow},
+    stadistics::{data_classification::DataClassification, Stadistics},
 };
 use chardet::detect;
 use column_stored::ColumnStored;
@@ -261,10 +261,32 @@ impl StoredFile {
         column_base: &usize,
         column_compare: &usize,
     ) -> CorrelationAnalysis {
+        // pendiente checar si esto va aqu
+        let column_base_class = self.get_column_class(column_base).await;
+        let column_compare_class = self.get_column_class(column_compare).await;
+
         let base = Self::convert_to_f64(&self.get_full_column(column_base).await);
         let compare = Self::convert_to_f64(&self.get_full_column(column_compare).await);
 
-        CorrelationAnalysis::new(&base, &compare).await
+        CorrelationAnalysis::new(&base, column_base_class, &compare, column_compare_class).await
+    }
+
+    async fn get_column_class(&self, column_base: &usize) -> DataClassification {
+        let current_stadistics = self
+            .columns
+            .headers
+            .get(column_base.clone())
+            .unwrap()
+            .stadistics
+            .clone();
+        let current_class = current_stadistics.classification;
+        if current_class == DataClassification::Unknown {
+            let (current_class, _) =
+                Stadistics::get_column_analysis(&self.get_full_column(column_base).await);
+            current_class
+        } else {
+            current_class
+        }
     }
 
     fn convert_to_f64(vec: &Vec<String>) -> Vec<f64> {
