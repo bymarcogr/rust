@@ -1,8 +1,8 @@
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub enum DataClassification {
-    Unknown,
-    Qualitative,
-    Quantitative,
+    Unknown = 0,
+    Qualitative = 1,
+    Quantitative = 2,
 }
 
 impl DataClassification {
@@ -12,5 +12,9 @@ impl DataClassification {
             DataClassification::Quantitative => "Quantitative",
             DataClassification::Unknown => "Unknown",
         }
+    }
+
+    pub fn default() -> Self {
+        DataClassification::Unknown
     }
 }

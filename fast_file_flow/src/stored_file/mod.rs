@@ -2,23 +2,25 @@ pub mod column_stored;
 pub mod file_type;
 pub mod row_stored;
 
+use crate::{
+    constants::path::CSV,
+    correlation_analysis::CorrelationAnalysis,
+    dynamictable::{IcedColumn, IcedRow},
+    stadistics::Stadistics,
+};
 use chardet::detect;
 use column_stored::ColumnStored;
 use csv_async::AsyncReaderBuilder;
 use file_type::FileType;
 use futures::stream::StreamExt;
+use rayon::prelude::*;
 use row_stored::RowStored;
 use serde_json::Value;
+use std::fmt::Debug;
 use std::{fs::metadata, io::Cursor, path::Path};
 use tokio::{
     fs::File,
     io::{AsyncBufReadExt, AsyncReadExt, BufReader},
-};
-
-use crate::{
-    constants::path::CSV,
-    dynamictable::{IcedColumn, IcedRow},
-    stadistics::Stadistics,
 };
 #[derive(Debug, Clone)]
 pub struct StoredFile {
@@ -117,7 +119,6 @@ impl StoredFile {
 
     #[warn(unused_assignments)]
     async fn get_rows(file_path: &str) -> RowStored {
-        let mut counter: u64 = 0;
         let mut rdr = csv_async::AsyncReader::from_reader(File::open(file_path).await.unwrap());
         let mut rdr_count =
             csv_async::AsyncReader::from_reader(File::open(file_path).await.unwrap());
@@ -144,7 +145,7 @@ impl StoredFile {
             records_vec
         });
 
-        counter = handle_count.await.unwrap();
+        let counter = handle_count.await.unwrap();
         let records_vec = handle_records.await.unwrap();
 
         println!("Rows {}", counter);
@@ -212,11 +213,56 @@ impl StoredFile {
         records_vec
     }
 
+    // pub async fn get_full_column_generic<T>(&self, column_index: &usize) -> Vec<T>
+    // where
+    //     T: FromStr + Send + 'static,
+    //     <T as FromStr>::Err: Debug,
+    // {
+    //     let mut rdr =
+    //         csv_async::AsyncReader::from_reader(File::open(&self.file_path).await.unwrap());
+    //     let index: usize = *column_index;
+
+    //     let handle_records = spawn(async move {
+    //         let mut records_vec = Vec::new();
+    //         let mut records = rdr.records();
+
+    //         while let Some(record) = records.next().await {
+    //             let value = record.unwrap().get(index).unwrap().to_string();
+
+    //             if value.is_empty() {
+    //                 records_vec.push(0);
+    //             } else {
+    //                 let parsed_value: T = value.parse().unwrap();
+    //                 records_vec.push(parsed_value);
+    //             }
+    //         }
+    //         records_vec
+    //     });
+
+    //     handle_records.await.unwrap()
+    // }
+
     pub async fn get_stadistics(&self, column_index: &usize) -> Stadistics {
         Stadistics::new(
             self.columns.headers.get(column_index.clone()).unwrap(),
             self.get_full_column(column_index).await,
         )
         .await
+    }
+    pub async fn get_correlation(
+        &self,
+        column_base: &usize,
+        column_compare: &usize,
+    ) -> CorrelationAnalysis {
+        let base = Self::convert_to_f64(&self.get_full_column(column_base).await);
+        let compare = Self::convert_to_f64(&self.get_full_column(column_compare).await);
+
+        CorrelationAnalysis::new(&base, &compare).await
+    }
+
+    fn convert_to_f64(vec: &Vec<String>) -> Vec<f64> {
+        vec.par_iter()
+            .map(|s| s.parse::<f64>().unwrap_or(0.0))
+            .collect()
     }
 }

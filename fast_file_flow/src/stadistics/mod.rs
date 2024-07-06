@@ -216,7 +216,7 @@ impl Stadistics {
         let std_dev_value = variance_value.sqrt();
         let duration = start.elapsed();
 
-        println!("Execution time: {:?}", duration.as_millis());
+        println!("Analysis Execution time: {:?}", duration.as_secs_f64());
         (
             distinct_count,
             max,
@@ -241,6 +241,7 @@ impl Stadistics {
             .sum();
         sum / len
     }
+
     fn calculate_median(data: ArrayView1<f64>) -> f64 {
         let mut sorted_data: Vec<f64> = data.to_vec();
         sorted_data.sort_by(|a, b| a.partial_cmp(b).unwrap());

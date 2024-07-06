@@ -3,6 +3,7 @@ use crate::constants::icons::*;
 use crate::constants::sizes::{
     FONT_NAME, PANEL_FONT_SIZE, PANEL_HEIGHT, PANEL_WIDTH, SEARCH_TEXTBOX_WIDTH,
 };
+use crate::correlation_analysis::CorrelationAnalysis;
 use crate::dynamictable::{IcedColumn, IcedRow};
 use crate::stadistics::Stadistics;
 use crate::stored_file::StoredFile;
@@ -32,6 +33,7 @@ pub struct FastFileFlow {
     clicked_button: String,
     selected_file: StoredFile,
     column_stadistics: Stadistics,
+    correlation_file: CorrelationAnalysis,
     header: scrollable::Id,
     body: scrollable::Id,
     footer: scrollable::Id,
@@ -52,8 +54,10 @@ pub enum FastFileFlowMessage {
     LoadFileButtonClick(bool),
     Tick(f32),
     SetSelectedFile(StoredFile),
+    SetStadisticsFile(Stadistics),
     HeaderClicked(usize),
     HeaderCheckBoxToggled(usize, bool),
+    SetCorrelationFile(CorrelationAnalysis),
     FilterButtonClick(),
     ProcessButtonClick(),
     AddButtonClick(),
@@ -68,7 +72,6 @@ pub enum FastFileFlowMessage {
     SyncHeader(scrollable::AbsoluteOffset),
     Resizing(usize, f32),
     Resized,
-    SetStadisticsFile(Stadistics),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -94,6 +97,7 @@ impl iced::Application for FastFileFlow {
                 clicked_button: String::from(""),
                 selected_file: StoredFile::default(),
                 column_stadistics: Stadistics::default(),
+                correlation_file: CorrelationAnalysis::default(),
                 header: scrollable::Id::unique(),
                 body: scrollable::Id::unique(),
                 footer: scrollable::Id::unique(),
@@ -197,7 +201,17 @@ impl iced::Application for FastFileFlow {
                 Command::none()
             }
             FastFileFlowMessage::HeaderCheckBoxToggled(index, toggle) => {
+                self.enable_loading(true);
                 self.columns.get_mut(index).unwrap().is_checked = toggle;
+                let selected_file = self.selected_file.clone();
+                Command::perform(
+                    async move { selected_file.get_correlation(&4, &5).await },
+                    |correlation_file| FastFileFlowMessage::SetCorrelationFile(correlation_file),
+                )
+            }
+            FastFileFlowMessage::SetCorrelationFile(correlation_file) => {
+                self.correlation_file = correlation_file;
+                self.enable_loading(false);
                 Command::none()
             }
             FastFileFlowMessage::FilterButtonClick() => {
@@ -566,16 +580,31 @@ impl FastFileFlow {
                     get_text("Pearson CC", false).into(),
                     "Pearson correlation coefficient"
                 ),
-                get_text("Valor", true)
+                get_text_size(
+                    self.correlation_file.pearson_correlation.to_string(),
+                    true,
+                    Pixels(PANEL_FONT_SIZE)
+                )
             ],
             row![
                 wrap_tooltip(
                     get_text("Spearman CC", false).into(),
                     "Spearman correlation coefficient"
                 ),
-                get_text("Valor", true)
+                get_text_size(
+                    self.correlation_file.spearman_correlation.to_string(),
+                    true,
+                    Pixels(PANEL_FONT_SIZE)
+                )
             ],
-            row![get_text("Covariance", false), get_text("Valor", true)],
+            row![
+                get_text("Covariance", false),
+                get_text_size(
+                    self.correlation_file.covariance.to_string(),
+                    true,
+                    Pixels(PANEL_FONT_SIZE)
+                )
+            ],
             row!["Graph", TAB_SPACE, "Valor"]
         ];
         let container_correlation = create_section_container(panel_coefficient);
