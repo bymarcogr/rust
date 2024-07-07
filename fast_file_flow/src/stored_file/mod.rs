@@ -16,7 +16,6 @@ use futures::stream::StreamExt;
 use rayon::prelude::*;
 use row_stored::RowStored;
 use serde_json::Value;
-use std::fmt::{Debug, Error};
 use std::{fs::metadata, io::Cursor, path::Path};
 use tokio::{
     fs::File,

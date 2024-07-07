@@ -1,6 +1,6 @@
 use fast_file_flow::{
-    app::FastFileFlow,
     constants::sizes::{APP_HEIGHT, APP_WIDTH},
+    fast_file_flow::FastFileFlow,
     util,
 };
 

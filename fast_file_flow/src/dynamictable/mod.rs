@@ -1,4 +1,4 @@
-use crate::app::FastFileFlowMessage;
+use crate::fast_file_flow::FastFileFlowMessage;
 use crate::util::wrap_tooltip_with_position;
 use iced::widget::{container, text};
 use iced::{Element, Length, Padding, Pixels, Theme};

@@ -6,10 +6,10 @@ use iced::Length::{self, Fixed};
 use iced::{Element, Font, Pixels};
 use std::path::{Path, PathBuf};
 
-use crate::app::FastFileFlowMessage;
 use crate::constants::english::{ERROR_GET_FOLDER, ERROR_LOAD_ICON, PROCESSED_FILENAME};
 use crate::constants::path::{LOGO_PRIMARY_PATH, LOGO_SECONDARY_PATH};
 use crate::constants::sizes::{FONT_ICON_SIZE, FONT_NAME, MENU_BUTTON_HEIGHT, MENU_BUTTON_WIDTH};
+use crate::fast_file_flow::FastFileFlowMessage;
 
 fn get_icon_from_file() -> Result<Icon, Error> {
     let mut icon = image::io::Reader::new(std::io::Cursor::new(include_bytes!(
