@@ -16,7 +16,7 @@ use futures::stream::StreamExt;
 use rayon::prelude::*;
 use row_stored::RowStored;
 use serde_json::Value;
-use std::fmt::Debug;
+use std::fmt::{Debug, Error};
 use std::{fs::metadata, io::Cursor, path::Path};
 use tokio::{
     fs::File,
@@ -260,15 +260,26 @@ impl StoredFile {
         &self,
         column_base: &usize,
         column_compare: &usize,
-    ) -> CorrelationAnalysis {
-        // pendiente checar si esto va aqu
+    ) -> Result<CorrelationAnalysis, &'static str> {
         let column_base_class = self.get_column_class(column_base).await;
         let column_compare_class = self.get_column_class(column_compare).await;
-
+        print!(
+            "{} y {}",
+            column_base_class.to_string(),
+            column_compare_class.to_string()
+        );
         let base = Self::convert_to_f64(&self.get_full_column(column_base).await);
         let compare = Self::convert_to_f64(&self.get_full_column(column_compare).await);
-
-        CorrelationAnalysis::new(&base, column_base_class, &compare, column_compare_class).await
+        if column_base_class == column_compare_class
+            && column_compare_class == DataClassification::Quantitative
+        {
+            Ok(
+                CorrelationAnalysis::new(&base, column_base_class, &compare, column_compare_class)
+                    .await,
+            )
+        } else {
+            Err("Ambas columnas deben ser de tipo { DataClassification::Quantitative}")
+        }
     }
 
     async fn get_column_class(&self, column_base: &usize) -> DataClassification {

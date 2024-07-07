@@ -47,6 +47,7 @@ pub struct FastFileFlow {
     progress: f32,
     running: bool,
     header_checked: Vec<SimpleColumn>,
+    error_message: String,
 }
 
 // Mensajes para la actualización de la GUI
@@ -69,6 +70,7 @@ pub enum FastFileFlowMessage {
     ScriptButtonClick(),
     PipelineButtonClick(),
     AnalysisButtonClick(),
+    AnalysisCompleted(),
     AIButtonClick(),
     PreviewButtonClick(),
     SaveButtonClick(),
@@ -113,6 +115,7 @@ impl iced::Application for FastFileFlow {
                 progress: 0.0,
                 running: false,
                 header_checked: vec![],
+                error_message: String::from(""),
             },
             Command::none(),
         )
@@ -185,6 +188,7 @@ impl iced::Application for FastFileFlow {
                 Command::none()
             }
             FastFileFlowMessage::SetSelectedFile(selected_file) => {
+                self.reset_state();
                 self.rows = selected_file.rows.sample.clone();
                 self.columns = selected_file.columns.headers.clone();
                 self.selected_file = selected_file;
@@ -193,30 +197,7 @@ impl iced::Application for FastFileFlow {
             }
 
             FastFileFlowMessage::HeaderClicked(column_index) => {
-                self.progress = 0.0;
-                self.enable_loading(true);
-
-                let current_stadistics = self
-                    .columns
-                    .get_mut(column_index)
-                    .unwrap()
-                    .stadistics
-                    .clone();
-
-                if current_stadistics.classification == DataClassification::Unknown {
-                    let selected_file = self.selected_file.clone();
-                    Command::perform(
-                        async move { selected_file.get_stadistics(&column_index).await },
-                        move |stadistics_file| {
-                            FastFileFlowMessage::SetStadisticsFile(column_index, stadistics_file)
-                        },
-                    )
-                } else {
-                    println!("Already exists");
-                    self.column_stadistics = current_stadistics.clone();
-                    self.enable_loading(false);
-                    Command::none()
-                }
+                self.get_column_stadistics_message(column_index)
             }
             FastFileFlowMessage::SetStadisticsFile(index, stadistics_file) => {
                 self.column_stadistics = stadistics_file.clone();
@@ -226,7 +207,6 @@ impl iced::Application for FastFileFlow {
             }
             FastFileFlowMessage::HeaderCheckBoxToggled(index, toggle) => {
                 if toggle {
-                    FastFileFlowMessage::HeaderClicked(index);
                     if self.header_checked.len() == 2_usize {
                         let item_deselect = self.header_checked.pop();
                         self.columns
@@ -247,22 +227,11 @@ impl iced::Application for FastFileFlow {
 
                         column.is_checked = toggle;
                     }
-                    if self.header_checked.len() == 2_usize {
-                        let index1 = self.header_checked.get(0).unwrap().index;
-                        let index2 = self.header_checked.get(1).unwrap().index;
 
-                        let selected_file = self.selected_file.clone();
+                    let com1: iced::Command<FastFileFlowMessage> =
+                        self.get_column_stadistics_message(index);
 
-                        Command::perform(
-                            async move { selected_file.get_correlation(&index1, &index2).await },
-                            |correlation_file| {
-                                FastFileFlowMessage::SetCorrelationFile(correlation_file)
-                            },
-                        )
-                    } else {
-                        self.enable_loading(false);
-                        Command::none()
-                    }
+                    iced::Command::batch(vec![com1])
                 } else {
                     let item_deselect = self.header_checked.pop().unwrap();
                     if item_deselect.index == index {
@@ -305,7 +274,31 @@ impl iced::Application for FastFileFlow {
                 Command::none()
             }
             FastFileFlowMessage::AnalysisButtonClick() => {
-                self.clicked_button = String::from("Analysis Button Clicked");
+                if self.header_checked.len() == 2_usize {
+                    self.running = true;
+                    let index1 = self.header_checked.get(0).unwrap().index;
+                    let index2 = self.header_checked.get(1).unwrap().index;
+
+                    let selected_file = self.selected_file.clone();
+
+                    Command::perform(
+                        async move { selected_file.get_correlation(&index1, &index2).await },
+                        |correlation_file| match correlation_file {
+                            Ok(value) => FastFileFlowMessage::SetCorrelationFile(value),
+                            Err(e) => {
+                                // self.error_message = String::from(value)"e.to_string()";
+                                println!("Error - get_correlation : {}", e);
+                                FastFileFlowMessage::AnalysisCompleted()
+                            }
+                        },
+                    )
+                } else {
+                    self.running = false;
+                    Command::none()
+                }
+            }
+            FastFileFlowMessage::AnalysisCompleted() => {
+                self.running = false;
                 Command::none()
             }
             FastFileFlowMessage::AIButtonClick() => {
@@ -818,6 +811,48 @@ impl FastFileFlow {
         ];
 
         loader
+    }
+
+    fn get_column_stadistics_message(
+        &mut self,
+        column_index: usize,
+    ) -> Command<FastFileFlowMessage> {
+        self.progress = 0.0;
+        self.enable_loading(true);
+
+        let current_stadistics = self
+            .columns
+            .get_mut(column_index)
+            .unwrap()
+            .stadistics
+            .clone();
+
+        if current_stadistics.classification == DataClassification::Unknown {
+            let selected_file = self.selected_file.clone();
+            Command::perform(
+                async move { selected_file.get_stadistics(&column_index).await },
+                move |stadistics_file| {
+                    FastFileFlowMessage::SetStadisticsFile(column_index, stadistics_file)
+                },
+            )
+        } else {
+            println!("Already exists");
+            self.column_stadistics = current_stadistics.clone();
+            self.enable_loading(false);
+            Command::none()
+        }
+    }
+
+    fn reset_state(&mut self) {
+        self.column_stadistics = Stadistics::default();
+        self.correlation_file = CorrelationAnalysis::default();
+        self.progress = 0.0;
+        self.running = false;
+        self.header_checked = vec![];
+    }
+
+    fn is_file_loaded(&self) -> bool {
+        !self.file_loaded.is_empty()
     }
 }
 
