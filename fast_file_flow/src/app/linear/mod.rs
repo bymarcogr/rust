@@ -198,15 +198,19 @@ where
         shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,
     ) -> event::Status {
-        let state = tree.state.downcast_mut::<State>();
+        if !self.show {
+            event::Status::Ignored
+        } else {
+            let state = tree.state.downcast_mut::<State>();
 
-        if let Event::Window(_, window::Event::RedrawRequested(now)) = event {
-            *state = state.timed_transition(self.cycle_duration, now);
+            if let Event::Window(_, window::Event::RedrawRequested(now)) = event {
+                *state = state.timed_transition(self.cycle_duration, now);
 
-            shell.request_redraw(RedrawRequest::NextFrame);
+                shell.request_redraw(RedrawRequest::NextFrame);
+            }
+
+            event::Status::Ignored
         }
-
-        event::Status::Ignored
     }
 
     fn draw(

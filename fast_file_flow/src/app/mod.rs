@@ -366,7 +366,7 @@ impl iced::Application for FastFileFlow {
         let action_menu = self.build_action_menu();
         let table = self.build_table();
 
-        let loader = self.build_loader();
+        let loader = self.build_status();
 
         let content = column![header, panels, action_menu, clicked_button, table, loader];
 
@@ -449,35 +449,6 @@ impl FastFileFlow {
     }
 
     fn build_panels(&self) -> Row<FastFileFlowMessage, Theme, iced::Renderer> {
-        let button_refresh = get_menu_button(
-            REFRESH,
-            FastFileFlowMessage::LoadFileButtonClick(true),
-            REFRESH_ICON,
-        );
-        let button_open = get_menu_button(
-            OPEN,
-            FastFileFlowMessage::LoadFileButtonClick(false),
-            OPEN_ICON,
-        );
-        let selected_file = Text::new(self.file_loaded.as_str())
-            .width(PANEL_WIDTH)
-            .size(Pixels(PANEL_FONT_SIZE));
-
-        let panel_file = column![
-            row![
-                "File",
-                horizontal_space(),
-                button_open,
-                TAB_SPACE,
-                button_refresh
-            ],
-            row![TAB_SPACE],
-            row![selected_file],
-            row![TAB_SPACE],
-        ];
-
-        let container_load_file = create_section_container(panel_file);
-
         let panel_file_details = column![
             row![
                 get_text("Filename:", false),
@@ -641,7 +612,8 @@ impl FastFileFlow {
                 )
             ],
         ];
-        let container_analysis = create_section_container(panel_column_analysis);
+        let container_analysis =
+            create_section_container_width(panel_column_analysis, PANEL_WIDTH * 2.0);
 
         let panel_coefficient = column![
             row![
@@ -701,8 +673,6 @@ impl FastFileFlow {
         let container_correlation = create_section_container(panel_coefficient);
 
         row![
-            container_load_file,
-            horizontal_space(),
             container_file_details,
             horizontal_space(),
             container_analysis,
@@ -712,6 +682,18 @@ impl FastFileFlow {
     }
 
     fn build_action_menu(&self) -> Row<FastFileFlowMessage, Theme, iced::Renderer> {
+        let button_open = get_menu_button(
+            OPEN,
+            FastFileFlowMessage::LoadFileButtonClick(false),
+            OPEN_ICON,
+        );
+
+        let button_refresh = get_menu_button(
+            REFRESH,
+            FastFileFlowMessage::LoadFileButtonClick(true),
+            REFRESH_ICON,
+        );
+
         let button_filter = get_menu_button(
             FILTER,
             FastFileFlowMessage::FilterButtonClick(),
@@ -760,6 +742,10 @@ impl FastFileFlow {
             EXPORT_ICON,
         );
         row![
+            button_open,
+            TAB_SPACE,
+            button_refresh,
+            TAB_SPACE,
             button_filter,
             TAB_SPACE,
             button_process,
@@ -814,13 +800,18 @@ impl FastFileFlow {
         }
     }
 
-    fn build_loader(&self) -> Row<FastFileFlowMessage, Theme, iced::Renderer> {
+    fn build_status(&self) -> Row<FastFileFlowMessage, Theme, iced::Renderer> {
+        let selected_file = Text::new(self.file_loaded.as_str())
+            .width(Length::Fill)
+            .size(Pixels(PANEL_FONT_SIZE));
+
         let loader = row![
+            selected_file,
             horizontal_space(),
             if self.running {
                 Linear::new(340.0, 15.0)
                     .easing(&easing::EMPHASIZED_ACCELERATE)
-                    .cycle_duration(Duration::from_secs_f32(1_f32))
+                    .cycle_duration(Duration::from_secs_f32(2_f32))
             } else {
                 Linear::default()
             }
@@ -833,6 +824,13 @@ impl FastFileFlow {
 fn create_section_container(
     section: Column<FastFileFlowMessage, Theme, iced::Renderer>,
 ) -> Container<FastFileFlowMessage, Theme, iced::Renderer> {
+    create_section_container_width(section, PANEL_WIDTH)
+}
+
+fn create_section_container_width(
+    section: Column<FastFileFlowMessage, Theme, iced::Renderer>,
+    width: f32,
+) -> Container<FastFileFlowMessage, Theme, iced::Renderer> {
     let border = Border {
         color: Color::from_rgb(0.315, 0.315, 0.315).into(),
         width: 1.0,
@@ -843,7 +841,7 @@ fn create_section_container(
     container(section)
         .align_x(iced::alignment::Horizontal::Left)
         .align_y(iced::alignment::Vertical::Top)
-        .width(PANEL_WIDTH)
+        .width(width)
         .height(PANEL_HEIGHT)
         .padding([10.0, 20.0, 0.0, 20.0])
         .style(container::Appearance {

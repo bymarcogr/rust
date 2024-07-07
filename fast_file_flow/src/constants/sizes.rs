@@ -7,4 +7,4 @@ pub const MENU_BUTTON_WIDTH: f32 = 40.0;
 pub const PANEL_HEIGHT: f32 = 170.0;
 pub const PANEL_WIDTH: f32 = 350.0;
 pub const SEARCH_TEXTBOX_WIDTH: f32 = 300.0;
-pub const PANEL_FONT_SIZE: f32 = 9.0;
+pub const PANEL_FONT_SIZE: f32 = 12.0;
