@@ -13,21 +13,21 @@ use crate::stored_file::StoredFile;
 use crate::util::{
     get_full_directory, get_logo, get_menu_button, get_text, get_text_size, wrap_tooltip,
 };
+use iced::widget::{
+    column, container, horizontal_space, responsive, row, scrollable, text, text_input, tooltip,
+    Button, Column, Container, Row, Text, TextInput,
+};
+use iced::Length::Fixed;
 use iced::Subscription;
+use iced::{Alignment, Border, Color, Command, Element, Font, Length, Padding, Pixels, Theme};
 use iced_futures::subscription;
 use iced_table::table;
-use std::time::Duration;
-use tokio::spawn;
-
-use iced::widget::{
-    column, container, horizontal_space, progress_bar, responsive, row, scrollable, text,
-    text_input, tooltip, Button, Column, Container, Row, Text, TextInput,
-};
-
-use iced::Length::Fixed;
-use iced::{Alignment, Border, Color, Command, Element, Font, Length, Padding, Pixels, Theme};
-
+use linear::Linear;
 use num_format::{Locale, ToFormattedString};
+use std::time::Duration;
+
+mod easing;
+mod linear;
 
 pub struct FastFileFlow {
     page: Page,
@@ -366,7 +366,9 @@ impl iced::Application for FastFileFlow {
         let action_menu = self.build_action_menu();
         let table = self.build_table();
 
-        let content = column![header, panels, action_menu, clicked_button, table];
+        let loader = self.build_loader();
+
+        let content = column![header, panels, action_menu, clicked_button, table, loader];
 
         let border = Border {
             color: Color::from_rgb(0.315, 0.315, 0.315).into(),
@@ -379,7 +381,7 @@ impl iced::Application for FastFileFlow {
             .align_y(iced::alignment::Vertical::Top)
             .width(iced::Length::Fill)
             .height(iced::Length::Fill)
-            .padding(Padding::from(40))
+            .padding([40.0, 40.0, 10.0, 40.0])
             .style(container::Appearance {
                 border,
                 ..Default::default()
@@ -461,8 +463,6 @@ impl FastFileFlow {
             .width(PANEL_WIDTH)
             .size(Pixels(PANEL_FONT_SIZE));
 
-        let progress = progress_bar(0.0..=100.0, self.progress).height(15.0);
-
         let panel_file = column![
             row![
                 "File",
@@ -474,7 +474,6 @@ impl FastFileFlow {
             row![TAB_SPACE],
             row![selected_file],
             row![TAB_SPACE],
-            row![progress]
         ];
 
         let container_load_file = create_section_container(panel_file);
@@ -800,12 +799,12 @@ impl FastFileFlow {
                 table.on_column_resize(FastFileFlowMessage::Resizing, FastFileFlowMessage::Resized);
 
             table = table.min_width(size.width);
-            table = table.footer(self.footer.clone());
+            //table = table.footer(self.footer.clone());
 
             table.into()
         });
 
-        row![table]
+        row![table].padding([0.0, 0.0, 5.0, 0.0])
     }
 
     fn enable_loading(&mut self, activate: bool) {
@@ -813,6 +812,21 @@ impl FastFileFlow {
         if !self.running {
             self.progress = 0.0;
         }
+    }
+
+    fn build_loader(&self) -> Row<FastFileFlowMessage, Theme, iced::Renderer> {
+        let loader = row![
+            horizontal_space(),
+            if self.running {
+                Linear::new(340.0, 15.0)
+                    .easing(&easing::EMPHASIZED_ACCELERATE)
+                    .cycle_duration(Duration::from_secs_f32(1_f32))
+            } else {
+                Linear::default()
+            }
+        ];
+
+        loader
     }
 }
 
