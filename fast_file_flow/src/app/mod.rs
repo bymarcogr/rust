@@ -60,7 +60,7 @@ pub enum FastFileFlowMessage {
     LoadFileButtonClick(bool),
     Tick(f32),
     SetSelectedFile(StoredFile),
-    SetStadisticsFile(usize, Stadistics),
+    SetStadisticsFile(usize, Stadistics, bool),
     HeaderClicked(usize),
     HeaderCheckBoxToggled(usize, bool),
     SetCorrelationFile(CorrelationAnalysis),
@@ -70,7 +70,7 @@ pub enum FastFileFlowMessage {
     ScriptButtonClick(),
     PipelineButtonClick(),
     AnalysisButtonClick(),
-    AnalysisCompleted(),
+    AnalysisCompleted(String),
     AIButtonClick(),
     PreviewButtonClick(),
     SaveButtonClick(),
@@ -128,6 +128,8 @@ impl iced::Application for FastFileFlow {
 
     // Actualizaciones basadas en los mensajes aquí
     fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
+        self.error_message = String::from("");
+
         match message {
             FastFileFlowMessage::TextBoxChange(string) => {
                 self.input_value = string;
@@ -176,6 +178,8 @@ impl iced::Application for FastFileFlow {
                     })
                 } else {
                     self.enable_loading(false);
+                    self.error_message =
+                        "Selecciona un archivo CSV para utilizar esta funcion".to_string();
                     Command::none()
                 }
             }
@@ -188,6 +192,13 @@ impl iced::Application for FastFileFlow {
                 Command::none()
             }
             FastFileFlowMessage::SetSelectedFile(selected_file) => {
+                if selected_file.sintaxis.clone() != crate::stored_file::file_type::FileType::CSV {
+                    self.error_message = format!(
+                        "Sintaxis {} en el archivo no es compatible, seleccione un archivo CSV válido",
+                        &selected_file.sintaxis.to_string()
+                    )
+                    .to_string();
+                }
                 self.reset_state();
                 self.rows = selected_file.rows.sample.clone();
                 self.columns = selected_file.columns.headers.clone();
@@ -197,15 +208,23 @@ impl iced::Application for FastFileFlow {
             }
 
             FastFileFlowMessage::HeaderClicked(column_index) => {
-                self.get_column_stadistics_message(column_index)
+                self.get_column_stadistics_message(column_index, false)
             }
-            FastFileFlowMessage::SetStadisticsFile(index, stadistics_file) => {
+            FastFileFlowMessage::SetStadisticsFile(index, stadistics_file, is_header_checkbox) => {
+                if is_header_checkbox {
+                    self.header_checked
+                        .iter_mut()
+                        .find(|s| s.index == index)
+                        .unwrap()
+                        .classification = stadistics_file.classification.clone();
+                }
                 self.column_stadistics = stadistics_file.clone();
                 self.columns.get_mut(index).unwrap().stadistics = stadistics_file;
                 self.enable_loading(false);
                 Command::none()
             }
             FastFileFlowMessage::HeaderCheckBoxToggled(index, toggle) => {
+                self.correlation_file = CorrelationAnalysis::default();
                 if toggle {
                     if self.header_checked.len() == 2_usize {
                         let item_deselect = self.header_checked.pop();
@@ -229,7 +248,7 @@ impl iced::Application for FastFileFlow {
                     }
 
                     let com1: iced::Command<FastFileFlowMessage> =
-                        self.get_column_stadistics_message(index);
+                        self.get_column_stadistics_message(index, true);
 
                     iced::Command::batch(vec![com1])
                 } else {
@@ -275,29 +294,36 @@ impl iced::Application for FastFileFlow {
             }
             FastFileFlowMessage::AnalysisButtonClick() => {
                 if self.header_checked.len() == 2_usize {
+                    println!("Inicia Analisis");
                     self.running = true;
-                    let index1 = self.header_checked.get(0).unwrap().index;
-                    let index2 = self.header_checked.get(1).unwrap().index;
 
+                    let mut header = self.header_checked.clone();
+                    let column_compare = header.pop().unwrap();
+                    let column_base = header.pop().unwrap();
                     let selected_file = self.selected_file.clone();
-
                     Command::perform(
-                        async move { selected_file.get_correlation(&index1, &index2).await },
+                        async move {
+                            println!("get_correlation");
+                            selected_file
+                                .get_correlation(&column_base.clone(), &column_compare.clone())
+                                .await
+                        },
                         |correlation_file| match correlation_file {
                             Ok(value) => FastFileFlowMessage::SetCorrelationFile(value),
-                            Err(e) => {
-                                // self.error_message = String::from(value)"e.to_string()";
-                                println!("Error - get_correlation : {}", e);
-                                FastFileFlowMessage::AnalysisCompleted()
-                            }
+                            Err(e) => FastFileFlowMessage::AnalysisCompleted(e.to_string()),
                         },
                     )
                 } else {
+                    self.error_message =
+                        "Selecciona dos columnas del tipo Cuantitativo".to_string();
                     self.running = false;
                     Command::none()
                 }
             }
-            FastFileFlowMessage::AnalysisCompleted() => {
+            FastFileFlowMessage::AnalysisCompleted(error) => {
+                if !&error.is_empty() {
+                    self.error_message = error;
+                }
                 self.running = false;
                 Command::none()
             }
@@ -396,6 +422,8 @@ impl iced::Application for FastFileFlow {
                 }
                 (FastFileFlowMessage::Tick(new_progress), new_progress)
             })
+
+            // todo() -> Agregar lectura de estado global de la aplicacion
         } else {
             println!("exit");
             Subscription::none()
@@ -610,6 +638,25 @@ impl FastFileFlow {
 
         let panel_coefficient = column![
             row![
+                get_text_size(
+                    self.header_checked
+                        .get(0)
+                        .map(|h| h.header.to_string())
+                        .unwrap_or_else(|| "".to_string()),
+                    true,
+                    Pixels(PANEL_FONT_SIZE)
+                ),
+                get_text_size(
+                    self.header_checked
+                        .get(1)
+                        .map(|h| h.header.to_string())
+                        .unwrap_or_else(|| "".to_string()),
+                    true,
+                    Pixels(PANEL_FONT_SIZE)
+                )
+            ],
+            row![TAB_SPACE, horizontal_space()],
+            row![
                 wrap_tooltip(
                     get_text("Pearson CC", false).into(),
                     "Pearson correlation coefficient"
@@ -635,28 +682,6 @@ impl FastFileFlow {
                 get_text("Covariance", false),
                 get_text_size(
                     self.correlation_file.covariance.to_string(),
-                    true,
-                    Pixels(PANEL_FONT_SIZE)
-                )
-            ],
-            row![
-                get_text("Columna 1", false),
-                get_text_size(
-                    self.header_checked
-                        .get(0)
-                        .map(|h| h.header.to_string())
-                        .unwrap_or_else(|| "".to_string()),
-                    true,
-                    Pixels(PANEL_FONT_SIZE)
-                )
-            ],
-            row![
-                get_text("Columna 2", false),
-                get_text_size(
-                    self.header_checked
-                        .get(1)
-                        .map(|h| h.header.to_string())
-                        .unwrap_or_else(|| "".to_string()),
                     true,
                     Pixels(PANEL_FONT_SIZE)
                 )
@@ -734,6 +759,10 @@ impl FastFileFlow {
             FastFileFlowMessage::ExportButtonClick(),
             EXPORT_ICON,
         );
+
+        let error_label =
+            row![get_text(&self.error_message, true)].padding(Padding::from([10.0, 0.0, 0.0, 0.0]));
+
         row![
             button_open,
             TAB_SPACE,
@@ -759,6 +788,7 @@ impl FastFileFlow {
             TAB_SPACE,
             button_export,
             TAB_SPACE,
+            error_label
         ]
         .padding([10.0, 50.0, 10.0, 0.0])
         .into()
@@ -816,6 +846,7 @@ impl FastFileFlow {
     fn get_column_stadistics_message(
         &mut self,
         column_index: usize,
+        is_header_check: bool,
     ) -> Command<FastFileFlowMessage> {
         self.progress = 0.0;
         self.enable_loading(true);
@@ -832,11 +863,15 @@ impl FastFileFlow {
             Command::perform(
                 async move { selected_file.get_stadistics(&column_index).await },
                 move |stadistics_file| {
-                    FastFileFlowMessage::SetStadisticsFile(column_index, stadistics_file)
+                    FastFileFlowMessage::SetStadisticsFile(
+                        column_index,
+                        stadistics_file,
+                        is_header_check,
+                    )
                 },
             )
         } else {
-            println!("Already exists");
+            println!("Analisis estadistico realizado previamente");
             self.column_stadistics = current_stadistics.clone();
             self.enable_loading(false);
             Command::none()

@@ -5,7 +5,7 @@ pub mod row_stored;
 use crate::{
     constants::path::CSV,
     correlation_analysis::CorrelationAnalysis,
-    dynamictable::{iced_column::IcedColumn, iced_row::IcedRow},
+    dynamictable::{iced_column::IcedColumn, iced_row::IcedRow, simple_column::SimpleColumn},
     stadistics::{data_classification::DataClassification, Stadistics},
 };
 use chardet::detect;
@@ -258,45 +258,20 @@ impl StoredFile {
 
     pub async fn get_correlation(
         &self,
-        column_base: &usize,
-        column_compare: &usize,
+        column_base: &SimpleColumn,
+        column_compare: &SimpleColumn,
     ) -> Result<CorrelationAnalysis, &'static str> {
-        let column_base_class = self.get_column_class(column_base).await;
-        let column_compare_class = self.get_column_class(column_compare).await;
-        print!(
-            "{} y {}",
-            column_base_class.to_string(),
-            column_compare_class.to_string()
-        );
-        let base = Self::convert_to_f64(&self.get_full_column(column_base).await);
-        let compare = Self::convert_to_f64(&self.get_full_column(column_compare).await);
-        if column_base_class == column_compare_class
-            && column_compare_class == DataClassification::Quantitative
-        {
-            Ok(
-                CorrelationAnalysis::new(&base, column_base_class, &compare, column_compare_class)
-                    .await,
-            )
-        } else {
-            Err("Ambas columnas deben ser de tipo { DataClassification::Quantitative}")
-        }
-    }
+        println!("Enter");
 
-    async fn get_column_class(&self, column_base: &usize) -> DataClassification {
-        let current_stadistics = self
-            .columns
-            .headers
-            .get(column_base.clone())
-            .unwrap()
-            .stadistics
-            .clone();
-        let current_class = current_stadistics.classification;
-        if current_class == DataClassification::Unknown {
-            let (current_class, _) =
-                Stadistics::get_column_analysis(&self.get_full_column(column_base).await);
-            current_class
+        if column_base.classification == DataClassification::Quantitative
+            && column_compare.classification == DataClassification::Quantitative
+        {
+            println!("Inicia get_correlation");
+            let base = Self::convert_to_f64(&self.get_full_column(&column_base.index).await);
+            let compare = Self::convert_to_f64(&self.get_full_column(&column_compare.index).await);
+            Ok(CorrelationAnalysis::new(&base, &compare).await)
         } else {
-            current_class
+            Err("Error - Seleccione solo columnas del tipo { DataClassification::Quantitative }")
         }
     }
 
