@@ -40,38 +40,30 @@ impl Export {
             File::open(&self.stored_file.file_path).await.unwrap(),
         );
 
+        // Step 1
+        let columns_ignore = self.get_ignore_column();
+
         // Add headers
         let headers: Vec<String> = self
             .simple_column
             .iter()
+            .filter(|f| filter_column_fn(&columns_ignore, f.index))
             .map(|s| s.header.to_string())
             .collect();
 
         let handle_records = tokio::spawn(async move {
             let _ = wtr.serialize(headers);
-            // let headers: Vec<String> = self
-            //     .simple_column
-            //     .iter()
-            //     .map(|s| s.header.to_string())
-            //     .collect();
-
-            // // rdr
-            // //     .headers()
-            // //     .await
-            //     .unwrap()
-            //     .iter()
-            //     .map(|s| s.to_string())
-            //     .collect();
 
             let mut records = rdr.records();
 
             while let Some(record) = records.next().await {
                 let record = record.unwrap();
-                let values: Vec<String> = record.iter().map(|s| s.to_string()).collect();
-
-                // if options.ignore_if_empty && record.name.is_empty() {
-                //     continue;
-                // }
+                let values: Vec<String> = record
+                    .iter()
+                    .enumerate()
+                    .filter(|(i, _)| filter_column_fn(&columns_ignore, i.clone()))
+                    .map(|s| s.1.to_string())
+                    .collect();
                 let _ = wtr.serialize(values);
             }
 
@@ -83,4 +75,16 @@ impl Export {
         println!("Exported Execution time: {:?}", duration.as_secs_f64());
         result
     }
+
+    fn get_ignore_column(&self) -> Vec<usize> {
+        self.simple_column
+            .iter()
+            .filter(|f| f.save_options.filter.ignore_column == true)
+            .map(|item| item.index)
+            .collect()
+    }
+}
+
+fn filter_column_fn(columns_ignore: &Vec<usize>, index: usize) -> bool {
+    !columns_ignore.contains(&index)
 }
