@@ -20,7 +20,9 @@ use iced::widget::{
 use iced::Length::Fixed;
 use iced::{Alignment, Border, Color, Command, Font, Length, Padding, Pixels, Theme};
 use iced_table::table;
+use iced_widget::checkbox;
 use iced_widget::core::Element;
+use iced_widget::vertical_space;
 use linear::Linear;
 use num_format::{Locale, ToFormattedString};
 use std::time::Duration;
@@ -30,8 +32,6 @@ mod linear;
 
 pub struct FastFileFlow {
     page: Page,
-    theme: Theme,
-    input_value: String,
     is_primary_logo: bool,
     clicked_button: String,
     selected_file: StoredFile,
@@ -47,6 +47,8 @@ pub struct FastFileFlow {
     running: bool,
     header_checked: Vec<SimpleColumn>,
     error_message: String,
+    theme: Theme,
+    input_value: String,
 }
 
 // Mensajes para la actualización de la GUI
@@ -83,11 +85,11 @@ pub enum FastFileFlowMessage {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Page {
     Main,
-    Configuration,
+    Filter,
 }
 
 impl FastFileFlow {
-    fn build_main_screen(&self) -> Element<'_, FastFileFlowMessage, Theme, iced::Renderer> {
+    fn show_main_screen(&self) -> Element<'_, FastFileFlowMessage, Theme, iced::Renderer> {
         let (clicked_button, header) = self.build_header();
         let panels = self.build_panels().padding([10.0, 0.0, 0.0, 0.0]);
         let action_menu = self.build_action_menu();
@@ -212,13 +214,9 @@ impl FastFileFlow {
 
         let panel_column_analysis = column![
             row![
-                get_text("Column:", false),
-                get_text_size(
-                    self.column_stadistics.header.to_string(),
-                    true,
-                    Pixels(PANEL_FONT_SIZE)
-                ),
-                TAB_SPACE,
+                get_text(self.column_stadistics.header.to_string(), true)
+                    .height(Length::Fixed(24.0))
+                    .width(Length::Fixed(PANEL_WIDTH - 12.0)),
                 get_text("Mean:", false),
                 get_text_size(
                     self.column_stadistics.mean.as_str(),
@@ -520,6 +518,134 @@ impl FastFileFlow {
         loader
     }
 
+    fn show_filter_screen(&self) -> Element<'_, FastFileFlowMessage, Theme, iced::Renderer> {
+        let header = 1;
+
+        let checkbox_ignore_if_empty = checkbox("", false)
+            .size(Pixels(14.0))
+            .spacing(Pixels(1.0))
+            .on_toggle(move |is_checked| FastFileFlowMessage::HeaderCheckBoxToggled(0, is_checked));
+
+        let checkbox_ignore_column = checkbox("", false)
+            .size(Pixels(14.0))
+            .spacing(Pixels(1.0))
+            .on_toggle(move |is_checked| FastFileFlowMessage::HeaderCheckBoxToggled(0, is_checked));
+
+        let save_button =
+            Button::new(Text::new("Save")).on_press(FastFileFlowMessage::Router(Page::Main));
+
+        let cancel_button =
+            Button::new(Text::new("Cancel")).on_press(FastFileFlowMessage::Router(Page::Main));
+
+        let panel_dropdown = column![
+            row![
+                get_text("Elige una Columna", false),
+                get_text_size("ComboBox", true, Pixels(PANEL_FONT_SIZE))
+            ],
+            row![TAB_SPACE, horizontal_space()],
+            row![
+                get_text("Ignore Row if Empty", false),
+                TAB_SPACE,
+                (column![checkbox_ignore_if_empty]).padding(Padding::from([3, 0, 0, 0])),
+            ],
+            row![
+                get_text("Ignore Column", false),
+                TAB_SPACE,
+                (column![checkbox_ignore_column]).padding(Padding::from([3, 0, 0, 0])),
+            ],
+            row![TAB_SPACE, horizontal_space()],
+            row![
+                TAB_SPACE,
+                horizontal_space(),
+                save_button,
+                TAB_SPACE,
+                cancel_button
+            ],
+        ];
+
+        let container_correlation = create_section_container(panel_dropdown);
+
+        let panel_column_analysis = column![
+            row![get_text(self.column_stadistics.header.to_string(), true)
+                .height(Length::Fixed(24.0))
+                .width(Length::Fixed(PANEL_WIDTH - 13.0)),],
+            row![
+                get_text("Datatype:", false),
+                get_text_size(
+                    self.column_stadistics.data_type.to_string(),
+                    true,
+                    Pixels(PANEL_FONT_SIZE)
+                )
+            ],
+            row![
+                get_text("Class:", false),
+                get_text_size(
+                    self.column_stadistics.classification.to_string(),
+                    true,
+                    Pixels(PANEL_FONT_SIZE)
+                )
+            ],
+            row![
+                get_text("Minimum:", false),
+                get_text_size(
+                    self.column_stadistics.minimum.as_str(),
+                    true,
+                    Pixels(PANEL_FONT_SIZE)
+                )
+            ],
+            row![
+                get_text("Maximum:", false),
+                get_text_size(
+                    self.column_stadistics.maximum.as_str(),
+                    true,
+                    Pixels(PANEL_FONT_SIZE)
+                )
+            ],
+            row![
+                get_text("Mode:", false),
+                get_text_size(
+                    self.column_stadistics.mode.as_str(),
+                    true,
+                    Pixels(PANEL_FONT_SIZE)
+                )
+            ],
+        ];
+        let container_analysis = create_section_container_width(panel_column_analysis, PANEL_WIDTH);
+
+        let render = row![
+            container_correlation,
+            TAB_SPACE,
+            container_analysis,
+            horizontal_space(),
+            column![
+                vertical_space(),
+                if self.running {
+                    Linear::new(340.0, 15.0)
+                        .easing(&easing::EMPHASIZED_ACCELERATE)
+                        .cycle_duration(Duration::from_secs_f32(2_f32))
+                } else {
+                    Linear::default()
+                }
+            ]
+        ];
+        let border = Border {
+            color: Color::from_rgb(0.315, 0.315, 0.315).into(),
+            width: 1.0,
+            radius: 40.0.into(),
+            ..Default::default()
+        };
+
+        container(render)
+            .align_x(iced::alignment::Horizontal::Left)
+            .align_y(iced::alignment::Vertical::Top)
+            .padding(40.0)
+            .style(container::Appearance {
+                border,
+                ..Default::default()
+            })
+            .into()
+    }
+
     fn get_column_stadistics_message(
         &mut self,
         column_index: usize,
@@ -572,6 +698,21 @@ impl FastFileFlow {
 
     fn is_file_loaded(&self) -> bool {
         !self.file_loaded.is_empty()
+    }
+
+    fn router(&mut self, page: Page) {
+        match page {
+            Page::Main => {
+                //self.theme = Theme::Dark;
+                //self.is_primary_logo = false;
+            }
+            _ => {
+                //     self.page = Page::Filter;
+                //self.theme = Theme::CatppuccinLatte;
+                //self.is_primary_logo = true;
+            }
+        }
+        self.page = page;
     }
 }
 

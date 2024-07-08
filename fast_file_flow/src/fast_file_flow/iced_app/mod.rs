@@ -1,17 +1,15 @@
 use crate::constants::english::*;
 use crate::correlation_analysis::CorrelationAnalysis;
 use crate::dynamictable::simple_column::SimpleColumn;
+use crate::save_options::SaveOptions;
 use crate::stadistics::Stadistics;
 use crate::stored_file::StoredFile;
+use iced::widget::scrollable;
 use iced::Subscription;
 use iced::{Command, Element, Theme};
 use iced_futures::subscription;
 use std::time::Duration;
 
-use iced::widget::scrollable;
-
-use super::config_page;
-use super::main_page;
 use super::FastFileFlow;
 use super::FastFileFlowMessage;
 use super::Page;
@@ -29,7 +27,7 @@ impl iced::Application for FastFileFlow {
                 page: Page::Main,
                 theme: Theme::GruvboxLight,
                 input_value: String::from(""),
-                is_primary_logo: false,
+                is_primary_logo: true,
                 clicked_button: String::from(""),
                 selected_file: StoredFile::default(),
                 column_stadistics: Stadistics::default(),
@@ -66,18 +64,7 @@ impl iced::Application for FastFileFlow {
             }
 
             FastFileFlowMessage::Router(page) => {
-                match page {
-                    Page::Main => {
-                        self.page = Page::Main;
-                        self.theme = Theme::Dark;
-                        self.is_primary_logo = false;
-                    }
-                    _ => {
-                        self.page = Page::Configuration;
-                        self.theme = Theme::CatppuccinLatte;
-                        self.is_primary_logo = true;
-                    }
-                }
+                self.router(page);
                 Command::none()
             }
 
@@ -120,6 +107,7 @@ impl iced::Application for FastFileFlow {
                 }
                 Command::none()
             }
+
             FastFileFlowMessage::SetSelectedFile(selected_file) => {
                 if selected_file.sintaxis.clone() != crate::stored_file::file_type::FileType::CSV {
                     self.error_message = format!(
@@ -137,8 +125,10 @@ impl iced::Application for FastFileFlow {
             }
 
             FastFileFlowMessage::HeaderClicked(column_index) => {
+                self.column_stadistics = Stadistics::default();
                 self.get_column_stadistics_message(column_index, false)
             }
+
             FastFileFlowMessage::SetStadisticsFile(index, stadistics_file, is_header_checkbox) => {
                 if is_header_checkbox {
                     self.header_checked
@@ -152,8 +142,10 @@ impl iced::Application for FastFileFlow {
                 self.enable_loading(false);
                 Command::none()
             }
+
             FastFileFlowMessage::HeaderCheckBoxToggled(index, toggle) => {
                 self.correlation_file = CorrelationAnalysis::default();
+                self.column_stadistics = Stadistics::default();
                 if toggle {
                     if self.header_checked.len() == 2_usize {
                         let item_deselect = self.header_checked.pop();
@@ -171,6 +163,7 @@ impl iced::Application for FastFileFlow {
                             index,
                             header: column.column_header.clone(),
                             classification: column.stadistics.classification.clone(),
+                            save_options: SaveOptions::default(),
                         });
 
                         column.is_checked = toggle;
@@ -196,13 +189,15 @@ impl iced::Application for FastFileFlow {
                     Command::none()
                 }
             }
+
             FastFileFlowMessage::SetCorrelationFile(correlation_file) => {
                 self.correlation_file = correlation_file;
                 self.enable_loading(false);
                 Command::none()
             }
+
             FastFileFlowMessage::FilterButtonClick() => {
-                self.clicked_button = String::from("Filter Button Clicked");
+                self.router(Page::Filter);
                 Command::none()
             }
             FastFileFlowMessage::ProcessButtonClick() => {
@@ -299,17 +294,11 @@ impl iced::Application for FastFileFlow {
         }
     }
 
-    // Define el layout de tu GUI aquí
     fn view(&self) -> Element<Self::Message> {
-        let pages = match self.page {
-            Page::Main => main_page(
-                self.input_value.as_str(),
-                FastFileFlowMessage::Router(Page::Configuration),
-            ),
-            Page::Configuration => config_page(FastFileFlowMessage::Router(Page::Main)),
-        };
-
-        self.build_main_screen()
+        match self.page {
+            Page::Main => self.show_main_screen(),
+            Page::Filter => self.show_filter_screen(),
+        }
     }
 
     fn theme(&self) -> Self::Theme {
