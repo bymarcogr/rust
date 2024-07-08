@@ -394,6 +394,75 @@ impl iced::Application for FastFileFlow {
                 }
                 Command::none()
             }
+            FastFileFlowMessage::ProcessTextEvent(index, value, option_type) => {
+                if self.column_option_selected != None {
+                    match option_type {
+                        OptionType::ProcessReplaceIfEmpty => {
+                            self.column_option_selected
+                                .as_mut()
+                                .unwrap()
+                                .save_options
+                                .process
+                                .replace_if_empty_value = value.clone();
+
+                            self.column_options
+                                .get_mut(index)
+                                .unwrap()
+                                .save_options
+                                .process
+                                .replace_if_empty_value = value.clone();
+                        }
+                        OptionType::ProcessReplaceIf => {
+                            self.column_option_selected
+                                .as_mut()
+                                .unwrap()
+                                .save_options
+                                .process
+                                .replace_if_value = value.clone();
+
+                            self.column_options
+                                .get_mut(index)
+                                .unwrap()
+                                .save_options
+                                .process
+                                .replace_if_value = value.clone();
+                        }
+                        OptionType::ProcessReplaceIfThen => {
+                            self.column_option_selected
+                                .as_mut()
+                                .unwrap()
+                                .save_options
+                                .process
+                                .replace_then_value = value.clone();
+
+                            self.column_options
+                                .get_mut(index)
+                                .unwrap()
+                                .save_options
+                                .process
+                                .replace_then_value = value.clone();
+                        }
+                        OptionType::ProcessReplaceWith => {
+                            self.column_option_selected
+                                .as_mut()
+                                .unwrap()
+                                .save_options
+                                .process
+                                .replace_with_value = value.clone();
+
+                            self.column_options
+                                .get_mut(index)
+                                .unwrap()
+                                .save_options
+                                .process
+                                .replace_with_value = value.clone();
+                        }
+                        _ => {}
+                    };
+                    self.column_options_state = combo_box::State::new(self.column_options.clone());
+                }
+                Command::none()
+            }
             FastFileFlowMessage::AIButtonClick() => {
                 self.clicked_button = String::from("AI Button Clicked");
                 Command::none()

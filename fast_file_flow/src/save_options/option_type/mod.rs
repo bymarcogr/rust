@@ -8,6 +8,7 @@ pub enum OptionType {
     ProcessReplaceIfEmpty = 4,
     ProcessReplaceWith = 5,
     ProcessReplaceIf = 6,
+    ProcessReplaceIfThen = 7,
 }
 
 impl PartialEq for OptionType {

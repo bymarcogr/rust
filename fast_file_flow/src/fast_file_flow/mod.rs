@@ -78,6 +78,7 @@ pub enum FastFileFlowMessage {
     FilterEvent(usize, bool, OptionType),
     ProcessButtonClick(),
     ProcessEvent(usize, bool, OptionType),
+    ProcessTextEvent(usize, String, OptionType),
     AddButtonClick(),
     ScriptButtonClick(),
     PipelineButtonClick(),
@@ -644,9 +645,6 @@ impl FastFileFlow {
     }
 
     fn build_filter_panel(&self) -> Container<FastFileFlowMessage, Theme, iced::Renderer> {
-        // let save_button =
-        //     Button::new(Text::new("Save")).on_press(FastFileFlowMessage::Router(Page::Main));
-
         let close_button =
             Button::new(Text::new("Close")).on_press(FastFileFlowMessage::Router(Page::Main));
 
@@ -671,6 +669,7 @@ impl FastFileFlow {
             index,
             filter.ignore_if_empty,
             OptionType::FilterIgnoreIfEmpty,
+            "Ignore Row if Empty".to_string(),
             FastFileFlowMessage::FilterEvent,
         );
 
@@ -678,6 +677,7 @@ impl FastFileFlow {
             index,
             filter.ignore_column,
             OptionType::FilterIgnoreColumn,
+            "Ignore Column".to_string(),
             FastFileFlowMessage::FilterEvent,
         );
 
@@ -685,12 +685,10 @@ impl FastFileFlow {
             row![combo_box],
             row![TAB_SPACE, horizontal_space()],
             row![
-                get_text("Ignore Row if Empty", false),
                 TAB_SPACE,
                 (column![checkbox_ignore_if_empty]).padding(Padding::from([3, 0, 0, 0])),
             ],
             row![
-                get_text("Ignore Column", false),
                 TAB_SPACE,
                 (column![checkbox_ignore_column]).padding(Padding::from([3, 0, 0, 0])),
             ],
@@ -762,6 +760,7 @@ impl FastFileFlow {
             index,
             process.trim,
             OptionType::ProcessTrim,
+            "Trim".to_string(),
             FastFileFlowMessage::ProcessEvent,
         );
 
@@ -769,43 +768,75 @@ impl FastFileFlow {
             index,
             process.replace_if_empty,
             OptionType::ProcessReplaceIfEmpty,
+            "Replace with if empty".to_string(),
             FastFileFlowMessage::ProcessEvent,
         );
         let checkbox_replace_with = self.build_checkbox(
             index,
             process.replace_with,
             OptionType::ProcessReplaceWith,
+            "Replace with".to_string(),
             FastFileFlowMessage::ProcessEvent,
         );
         let checkbox_replace_if = self.build_checkbox(
             index,
             process.replace_if,
             OptionType::ProcessReplaceIf,
+            "Replace if equals to".to_string(),
             FastFileFlowMessage::ProcessEvent,
         );
+
+        let replace_if_empty_text =
+            text_input("when empty", &process.replace_if_empty_value.as_str())
+                .on_input(move |value| {
+                    FastFileFlowMessage::ProcessTextEvent(
+                        index,
+                        value,
+                        OptionType::ProcessReplaceIfEmpty,
+                    )
+                })
+                .size(10.0);
+
+        let replace_with_text = text_input("all with", process.replace_with_value.as_str())
+            .on_input(move |value| {
+                FastFileFlowMessage::ProcessTextEvent(index, value, OptionType::ProcessReplaceWith)
+            })
+            .size(10.0);
+
+        let replace_if_text = text_input("if equals", &process.replace_if_value.as_str())
+            .on_input(move |value| {
+                FastFileFlowMessage::ProcessTextEvent(index, value, OptionType::ProcessReplaceIf)
+            })
+            .size(10.0);
+
+        let replace_then_text = text_input("then", &process.replace_then_value.as_str())
+            .on_input(move |value| {
+                FastFileFlowMessage::ProcessTextEvent(
+                    index,
+                    value,
+                    OptionType::ProcessReplaceIfThen,
+                )
+            })
+            .size(10.0);
 
         let panel_dropdown = column![
             row![combo_box],
             row![TAB_SPACE, horizontal_space()],
             row![
-                get_text("Trim", false),
-                TAB_SPACE,
-                (column![checkbox_trim]).padding(Padding::from([3, 0, 0, 0])),
-            ],
-            row![
-                get_text("Replace with if empty", false),
-                TAB_SPACE,
-                (column![checkbox_replace_if_empty]).padding(Padding::from([3, 0, 0, 0])),
-            ],
-            row![
-                get_text("Replace with", false),
-                TAB_SPACE,
-                (column![checkbox_replace_with]).padding(Padding::from([3, 0, 0, 0])),
-            ],
-            row![
-                get_text("Replace if", false),
-                TAB_SPACE,
-                (column![checkbox_replace_if]).padding(Padding::from([3, 0, 0, 0])),
+                column![TAB_SPACE, TAB_SPACE, TAB_SPACE, TAB_SPACE,],
+                column![
+                    checkbox_trim,
+                    checkbox_replace_if_empty,
+                    checkbox_replace_with,
+                    checkbox_replace_if,
+                ],
+                column![TAB_SPACE, TAB_SPACE, TAB_SPACE, TAB_SPACE,],
+                column![
+                    TAB_SPACE,
+                    replace_if_empty_text,
+                    replace_with_text,
+                    row![replace_if_text, TAB_SPACE, replace_then_text],
+                ]
             ],
             row![TAB_SPACE, horizontal_space()],
             row![
@@ -814,7 +845,7 @@ impl FastFileFlow {
                 close_button
             ],
         ];
-        create_section_container(panel_dropdown)
+        create_section_container_width(panel_dropdown, PANEL_WIDTH + 100.0)
     }
 
     fn build_checkbox<F>(
@@ -822,12 +853,13 @@ impl FastFileFlow {
         index: usize,
         checked: bool,
         option_type: OptionType,
+        label: String,
         f: F,
     ) -> checkbox::Checkbox<FastFileFlowMessage, Theme, iced::Renderer>
     where
         F: 'static + Fn(usize, bool, OptionType) -> FastFileFlowMessage,
     {
-        checkbox("", checked)
+        checkbox(label, checked)
             .size(Pixels(14.0))
             .spacing(Pixels(1.0))
             .on_toggle(move |is_checked| f(index, is_checked, option_type.clone()))
@@ -953,8 +985,7 @@ fn main_page(
         .width(Length::Fill)
         .horizontal_alignment(iced::alignment::Horizontal::Center);
     let row1 = Row::new().push(text).push(Text::new(folder));
-    let text_input: TextInput<'_, FastFileFlowMessage> =
-        text_input("world", _value).on_input(FastFileFlowMessage::TextBoxChange);
+    let text_input = text_input("world", _value).on_input(FastFileFlowMessage::TextBoxChange);
     let row2 = Row::new().push(image).push(nt);
     let col = Column::new().push(row1).push(row2).push(text_input);
     let column = Column::new()
