@@ -4,11 +4,12 @@ pub enum OptionType {
     None = 0,
     FilterIgnoreIfEmpty = 1,
     FilterIgnoreColumn = 2,
-    ProcessTrim = 3,
-    ProcessReplaceIfEmpty = 4,
-    ProcessReplaceWith = 5,
-    ProcessReplaceIf = 6,
-    ProcessReplaceIfThen = 7,
+    FilterIgnoreIf = 3,
+    ProcessTrim = 4,
+    ProcessReplaceIfEmpty = 5,
+    ProcessReplaceWith = 6,
+    ProcessReplaceIf = 7,
+    ProcessReplaceIfThen = 8,
 }
 
 impl PartialEq for OptionType {

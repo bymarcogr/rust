@@ -43,6 +43,7 @@ impl Export {
         // Step 1
         let columns_ignore = self.get_ignore_column();
         let row_ignore_if_empty = self.get_ignored_row_if_empty_indexes();
+        let row_ignore_if_value = self.get_ignored_row_if_value_indexes();
 
         // Add headers
         let headers: Vec<String> = self
@@ -61,6 +62,9 @@ impl Export {
                 let record = record.unwrap();
 
                 if ignore_row_if_empty(&row_ignore_if_empty, &record) {
+                    continue;
+                }
+                if ignore_row_if_value(&row_ignore_if_value, &record) {
                     continue;
                 }
 
@@ -86,7 +90,7 @@ impl Export {
     fn get_ignore_column(&self) -> Vec<usize> {
         self.simple_column
             .iter()
-            .filter(|f| f.save_options.filter.ignore_column == true)
+            .filter(|f| f.save_options.filter.ignore_column)
             .map(|item| item.index)
             .collect()
     }
@@ -94,8 +98,21 @@ impl Export {
     fn get_ignored_row_if_empty_indexes(&self) -> Vec<usize> {
         self.simple_column
             .iter()
-            .filter(|f| f.save_options.filter.ignore_if_empty == true)
+            .filter(|f| f.save_options.filter.ignore_row_if_empty)
             .map(|item| item.index)
+            .collect()
+    }
+
+    fn get_ignored_row_if_value_indexes(&self) -> Vec<(usize, String)> {
+        self.simple_column
+            .iter()
+            .filter(|f| f.save_options.filter.ignore_row_if)
+            .map(|item| {
+                (
+                    item.index,
+                    item.save_options.filter.ignore_row_if_text.clone(),
+                )
+            })
             .collect()
     }
 }
@@ -113,6 +130,25 @@ fn ignore_row_if_empty(
         .enumerate()
         .filter(|f| ignore_enabled_index.contains(&f.0))
         .filter(|i| i.1.is_empty())
+        .count()
+        > 0
+}
+
+fn ignore_row_if_value(
+    ignore_enabled_index: &Vec<(usize, String)>,
+    record: &csv_async::StringRecord,
+) -> bool {
+    record
+        .iter()
+        .enumerate()
+        // .filter(|f| ignore_enabled_index.contains(&f.0))
+        // .filter(|i| i.1.is_empty())
+        .filter(|(i, _)| ignore_enabled_index.iter().any(|(index, _)| index == i))
+        .filter(|(i, val)| {
+            ignore_enabled_index
+                .iter()
+                .any(|(index, value)| index == i && val == value)
+        })
         .count()
         > 0
 }

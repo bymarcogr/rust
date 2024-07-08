@@ -73,6 +73,7 @@ pub enum FastFileFlowMessage {
     ColumnOptionSelectedClosed(),
     FilterButtonClick(),
     FilterEvent(usize, bool, OptionType),
+    FilterTextEvent(usize, String, OptionType),
     ProcessButtonClick(),
     ProcessEvent(usize, bool, OptionType),
     ProcessTextEvent(usize, String, OptionType),
@@ -530,8 +531,8 @@ impl FastFileFlow {
     }
 
     fn show_filter_screen(&self) -> Element<'_, FastFileFlowMessage, Theme, iced::Renderer> {
-        let container_correlation = self.build_filter_panel();
-        let container_analysis = self.build_filter_statistics();
+        let container_correlation = self.build_filter_panel().height(PANEL_HEIGHT + 50.0);
+        let container_analysis = self.build_filter_statistics().height(PANEL_HEIGHT + 50.0);
 
         let render = row![
             container_correlation,
@@ -665,7 +666,7 @@ impl FastFileFlow {
 
         let checkbox_ignore_if_empty = self.build_checkbox(
             index,
-            filter.ignore_if_empty,
+            filter.ignore_row_if_empty,
             OptionType::FilterIgnoreIfEmpty,
             "Ignore Row if Empty".to_string(),
             FastFileFlowMessage::FilterEvent,
@@ -679,21 +680,42 @@ impl FastFileFlow {
             FastFileFlowMessage::FilterEvent,
         );
 
+        let checkbox_ignore_if = self.build_checkbox(
+            index,
+            filter.ignore_row_if,
+            OptionType::FilterIgnoreIf,
+            "Ignore if ".to_string(),
+            FastFileFlowMessage::FilterEvent,
+        );
+
+        let text_ignore_if_value = text_input("equals to", &filter.ignore_row_if_text.as_str())
+            .on_input(move |value| {
+                FastFileFlowMessage::FilterTextEvent(index, value, OptionType::FilterIgnoreIf)
+            })
+            .size(10.0);
+
         let panel_dropdown = column![
             row![combo_box],
             row![TAB_SPACE, horizontal_space()],
             row![
+                (column![checkbox_ignore_column]).padding(Padding::from([3, 0, 0, 0])),
                 TAB_SPACE,
-                (column![checkbox_ignore_if_empty]).padding(Padding::from([3, 0, 0, 0])),
+                horizontal_space()
             ],
             row![
+                (column![checkbox_ignore_if_empty]).padding(Padding::from([3, 0, 0, 0])),
                 TAB_SPACE,
-                (column![checkbox_ignore_column]).padding(Padding::from([3, 0, 0, 0])),
+                horizontal_space()
+            ],
+            row![
+                (column![checkbox_ignore_if]).padding(Padding::from([3, 0, 0, 0])),
+                TAB_SPACE,
+                text_ignore_if_value
             ],
             row![TAB_SPACE, horizontal_space()],
             row![TAB_SPACE, horizontal_space(), close_button],
         ];
-        create_section_container(panel_dropdown)
+        create_section_container_width(panel_dropdown, PANEL_WIDTH + 100.0)
     }
 
     fn show_process_screen(&self) -> Element<'_, FastFileFlowMessage, Theme, iced::Renderer> {

@@ -295,14 +295,29 @@ impl iced::Application for FastFileFlow {
                                 .unwrap()
                                 .save_options
                                 .filter
-                                .ignore_if_empty = checked;
+                                .ignore_row_if_empty = checked;
 
                             self.column_options
                                 .get_mut(index)
                                 .unwrap()
                                 .save_options
                                 .filter
-                                .ignore_if_empty = checked;
+                                .ignore_row_if_empty = checked;
+                        }
+                        OptionType::FilterIgnoreIf => {
+                            self.column_option_selected
+                                .as_mut()
+                                .unwrap()
+                                .save_options
+                                .filter
+                                .ignore_row_if = checked;
+
+                            self.column_options
+                                .get_mut(index)
+                                .unwrap()
+                                .save_options
+                                .filter
+                                .ignore_row_if = checked;
                         }
                         OptionType::FilterIgnoreColumn => {
                             self.column_option_selected
@@ -322,6 +337,30 @@ impl iced::Application for FastFileFlow {
                         _ => {}
                     };
 
+                    self.column_options_state = combo_box::State::new(self.column_options.clone());
+                }
+                Command::none()
+            }
+            FastFileFlowMessage::FilterTextEvent(index, value, option_type) => {
+                if self.column_option_selected != None {
+                    match option_type {
+                        OptionType::FilterIgnoreIf => {
+                            self.column_option_selected
+                                .as_mut()
+                                .unwrap()
+                                .save_options
+                                .filter
+                                .ignore_row_if_text = value.clone();
+
+                            self.column_options
+                                .get_mut(index)
+                                .unwrap()
+                                .save_options
+                                .filter
+                                .ignore_row_if_text = value.clone();
+                        }
+                        _ => {}
+                    };
                     self.column_options_state = combo_box::State::new(self.column_options.clone());
                 }
                 Command::none()
