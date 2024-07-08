@@ -1,6 +1,6 @@
 use crate::{save_options::SaveOptions, stadistics::data_classification::DataClassification};
 
-#[derive(Debug, Hash, Clone)]
+#[derive(Debug, Hash, Clone, PartialEq)]
 pub struct SimpleColumn {
     pub index: usize,
     pub header: String,

@@ -7,6 +7,7 @@ use crate::correlation_analysis::CorrelationAnalysis;
 use crate::dynamictable::iced_column::IcedColumn;
 use crate::dynamictable::iced_row::IcedRow;
 use crate::dynamictable::simple_column::SimpleColumn;
+use crate::save_options::option_type::OptionType;
 use crate::stadistics::data_classification::DataClassification;
 use crate::stadistics::Stadistics;
 use crate::stored_file::StoredFile;
@@ -71,8 +72,12 @@ pub enum FastFileFlowMessage {
     HeaderClicked(usize),
     HeaderCheckBoxToggled(usize, bool),
     SetCorrelationFile(CorrelationAnalysis),
+    ColumnOptionSelected(SimpleColumn),
+    ColumnOptionSelectedClosed(),
     FilterButtonClick(),
+    FilterEvent(usize, bool, OptionType),
     ProcessButtonClick(),
+    ProcessEvent(usize, bool, OptionType),
     AddButtonClick(),
     ScriptButtonClick(),
     PipelineButtonClick(),
@@ -86,16 +91,13 @@ pub enum FastFileFlowMessage {
     SyncHeader(scrollable::AbsoluteOffset),
     Resizing(usize, f32),
     Resized,
-    ColumnOptionSelected(SimpleColumn),
-    ColumnOptionSelectedClosed,
-    FilterIgnoreIfEmpty(usize, bool),
-    FilterIgnoreColumn(usize, bool),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Page {
-    Main,
-    Filter,
+    Main = 1,
+    Filter = 2,
+    Process = 3,
 }
 
 impl FastFileFlow {
@@ -626,13 +628,9 @@ impl FastFileFlow {
         container_analysis
     }
 
-    fn build_filter_panel(&self) -> Container<FastFileFlowMessage, Theme, iced::Renderer> {
-        // let save_button =
-        //     Button::new(Text::new("Save")).on_press(FastFileFlowMessage::Router(Page::Main));
-
-        let close_button =
-            Button::new(Text::new("Close")).on_press(FastFileFlowMessage::Router(Page::Main));
-
+    fn build_header_combo_box(
+        &self,
+    ) -> combo_box::ComboBox<SimpleColumn, FastFileFlowMessage, Theme, iced::Renderer> {
         let combo_box = combo_box(
             &self.column_options_state,
             "Choose a column",
@@ -642,6 +640,17 @@ impl FastFileFlow {
         //.on_close(FastFileFlowMessage::ColumnOptionSelectedClosed)
         .size(12.0)
         .width(Length::Fill);
+        combo_box
+    }
+
+    fn build_filter_panel(&self) -> Container<FastFileFlowMessage, Theme, iced::Renderer> {
+        // let save_button =
+        //     Button::new(Text::new("Save")).on_press(FastFileFlowMessage::Router(Page::Main));
+
+        let close_button =
+            Button::new(Text::new("Close")).on_press(FastFileFlowMessage::Router(Page::Main));
+
+        let combo_box = self.build_header_combo_box();
 
         let index = self
             .column_option_selected
@@ -650,31 +659,27 @@ impl FastFileFlow {
             .index;
 
         let default_simple_column = SimpleColumn::default();
-        let checkbox_ignore_if_empty = checkbox(
-            "",
-            self.column_options
-                .get(index)
-                .unwrap_or(&default_simple_column)
-                .save_options
-                .filter
-                .ignore_if_empty,
-        )
-        .size(Pixels(14.0))
-        .spacing(Pixels(1.0))
-        .on_toggle(move |is_checked| FastFileFlowMessage::FilterIgnoreIfEmpty(index, is_checked));
 
-        let checkbox_ignore_column = checkbox(
-            "",
-            self.column_options
-                .get(index)
-                .unwrap_or(&default_simple_column)
-                .save_options
-                .filter
-                .ignore_column,
-        )
-        .size(Pixels(14.0))
-        .spacing(Pixels(1.0))
-        .on_toggle(move |is_checked| FastFileFlowMessage::FilterIgnoreColumn(index, is_checked));
+        let filter = &self
+            .column_options
+            .get(index)
+            .unwrap_or(&default_simple_column)
+            .save_options
+            .filter;
+
+        let checkbox_ignore_if_empty = self.build_checkbox(
+            index,
+            filter.ignore_if_empty,
+            OptionType::FilterIgnoreIfEmpty,
+            FastFileFlowMessage::FilterEvent,
+        );
+
+        let checkbox_ignore_column = self.build_checkbox(
+            index,
+            filter.ignore_column,
+            OptionType::FilterIgnoreColumn,
+            FastFileFlowMessage::FilterEvent,
+        );
 
         let panel_dropdown = column![
             row![combo_box],
@@ -690,6 +695,119 @@ impl FastFileFlow {
                 (column![checkbox_ignore_column]).padding(Padding::from([3, 0, 0, 0])),
             ],
             row![TAB_SPACE, horizontal_space()],
+            row![TAB_SPACE, horizontal_space(), close_button],
+        ];
+        create_section_container(panel_dropdown)
+    }
+
+    fn show_process_screen(&self) -> Element<'_, FastFileFlowMessage, Theme, iced::Renderer> {
+        let container_process = self.build_process_panel().height(PANEL_HEIGHT + 50.0);
+        let container_analysis = self.build_filter_statistics().height(PANEL_HEIGHT + 50.0);
+
+        let render = row![
+            container_process,
+            TAB_SPACE,
+            container_analysis,
+            horizontal_space(),
+            column![
+                vertical_space(),
+                if self.running {
+                    Linear::new(340.0, 15.0)
+                        .easing(&easing::EMPHASIZED_ACCELERATE)
+                        .cycle_duration(Duration::from_secs_f32(2_f32))
+                } else {
+                    Linear::default()
+                }
+            ]
+        ];
+        let border = Border {
+            color: Color::from_rgb(0.315, 0.315, 0.315).into(),
+            width: 1.0,
+            radius: 40.0.into(),
+            ..Default::default()
+        };
+
+        container(render)
+            .align_x(iced::alignment::Horizontal::Left)
+            .align_y(iced::alignment::Vertical::Top)
+            .padding(40.0)
+            .style(container::Appearance {
+                border,
+                ..Default::default()
+            })
+            .into()
+    }
+
+    fn build_process_panel(&self) -> Container<FastFileFlowMessage, Theme, iced::Renderer> {
+        let close_button =
+            Button::new(Text::new("Close")).on_press(FastFileFlowMessage::Router(Page::Main));
+
+        let combo_box = self.build_header_combo_box();
+
+        let index = self
+            .column_option_selected
+            .clone()
+            .unwrap_or_default()
+            .index;
+
+        let default_simple_column = SimpleColumn::default();
+        let process = &self
+            .column_options
+            .get(index)
+            .unwrap_or(&default_simple_column)
+            .save_options
+            .process;
+
+        let checkbox_trim = self.build_checkbox(
+            index,
+            process.trim,
+            OptionType::ProcessTrim,
+            FastFileFlowMessage::ProcessEvent,
+        );
+
+        let checkbox_replace_if_empty = self.build_checkbox(
+            index,
+            process.replace_if_empty,
+            OptionType::ProcessReplaceIfEmpty,
+            FastFileFlowMessage::ProcessEvent,
+        );
+        let checkbox_replace_with = self.build_checkbox(
+            index,
+            process.replace_with,
+            OptionType::ProcessReplaceWith,
+            FastFileFlowMessage::ProcessEvent,
+        );
+        let checkbox_replace_if = self.build_checkbox(
+            index,
+            process.replace_if,
+            OptionType::ProcessReplaceIf,
+            FastFileFlowMessage::ProcessEvent,
+        );
+
+        let panel_dropdown = column![
+            row![combo_box],
+            row![TAB_SPACE, horizontal_space()],
+            row![
+                get_text("Trim", false),
+                TAB_SPACE,
+                (column![checkbox_trim]).padding(Padding::from([3, 0, 0, 0])),
+            ],
+            row![
+                get_text("Replace with if empty", false),
+                TAB_SPACE,
+                (column![checkbox_replace_if_empty]).padding(Padding::from([3, 0, 0, 0])),
+            ],
+            row![
+                get_text("Replace with", false),
+                TAB_SPACE,
+                (column![checkbox_replace_with]).padding(Padding::from([3, 0, 0, 0])),
+            ],
+            row![
+                get_text("Replace if", false),
+                TAB_SPACE,
+                (column![checkbox_replace_if]).padding(Padding::from([3, 0, 0, 0])),
+            ],
+            row![TAB_SPACE, horizontal_space()],
             row![
                 TAB_SPACE,
                 horizontal_space(), // save_button,
@@ -697,6 +815,22 @@ impl FastFileFlow {
             ],
         ];
         create_section_container(panel_dropdown)
+    }
+
+    fn build_checkbox<F>(
+        &self,
+        index: usize,
+        checked: bool,
+        option_type: OptionType,
+        f: F,
+    ) -> checkbox::Checkbox<FastFileFlowMessage, Theme, iced::Renderer>
+    where
+        F: 'static + Fn(usize, bool, OptionType) -> FastFileFlowMessage,
+    {
+        checkbox("", checked)
+            .size(Pixels(14.0))
+            .spacing(Pixels(1.0))
+            .on_toggle(move |is_checked| f(index, is_checked, option_type.clone()))
     }
 
     fn get_column_stadistics_message(
@@ -766,6 +900,13 @@ impl FastFileFlow {
             }
         }
         self.page = page;
+    }
+    fn set_file_not_found_error(&mut self) {
+        self.set_error("Selecciona un archivo CSV para utilizar esta funcion");
+    }
+
+    fn set_error(&mut self, message: &str) {
+        self.error_message = message.to_string();
     }
 }
 

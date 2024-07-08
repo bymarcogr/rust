@@ -1,6 +1,7 @@
 use crate::constants::english::*;
 use crate::correlation_analysis::CorrelationAnalysis;
 use crate::dynamictable::simple_column::SimpleColumn;
+use crate::save_options::option_type::OptionType;
 use crate::save_options::SaveOptions;
 use crate::stadistics::data_classification::DataClassification;
 use crate::stadistics::Stadistics;
@@ -99,8 +100,7 @@ impl iced::Application for FastFileFlow {
                     })
                 } else {
                     self.enable_loading(false);
-                    self.error_message =
-                        "Selecciona un archivo CSV para utilizar esta funcion".to_string();
+                    self.set_file_not_found_error();
                     Command::none()
                 }
             }
@@ -205,11 +205,19 @@ impl iced::Application for FastFileFlow {
             }
 
             FastFileFlowMessage::FilterButtonClick() => {
-                self.router(Page::Filter);
+                if !self.is_file_loaded() {
+                    self.set_file_not_found_error();
+                } else {
+                    self.router(Page::Filter);
+                }
                 Command::none()
             }
             FastFileFlowMessage::ProcessButtonClick() => {
-                self.clicked_button = String::from("Process Button Clicked");
+                if !self.is_file_loaded() {
+                    self.set_file_not_found_error();
+                } else {
+                    self.router(Page::Process);
+                }
                 Command::none()
             }
             FastFileFlowMessage::AddButtonClick() => {
@@ -268,7 +276,7 @@ impl iced::Application for FastFileFlow {
                     Command::none()
                 }
             }
-            FastFileFlowMessage::ColumnOptionSelectedClosed => {
+            FastFileFlowMessage::ColumnOptionSelectedClosed() => {
                 if let Some(column) = &self.column_option_selected {
                     println!("No hay Header {}", column.header);
                 } else {
@@ -277,42 +285,113 @@ impl iced::Application for FastFileFlow {
 
                 Command::none()
             }
-            FastFileFlowMessage::FilterIgnoreIfEmpty(index, checked) => {
-                self.column_option_selected
-                    .as_mut()
-                    .unwrap()
-                    .save_options
-                    .filter
-                    .ignore_if_empty = checked;
+            FastFileFlowMessage::FilterEvent(index, checked, option_type) => {
+                if self.column_option_selected != None {
+                    match option_type {
+                        OptionType::FilterIgnoreIfEmpty => {
+                            self.column_option_selected
+                                .as_mut()
+                                .unwrap()
+                                .save_options
+                                .filter
+                                .ignore_if_empty = checked;
 
-                self.column_options
-                    .get_mut(index)
-                    .unwrap()
-                    .save_options
-                    .filter
-                    .ignore_if_empty = checked;
+                            self.column_options
+                                .get_mut(index)
+                                .unwrap()
+                                .save_options
+                                .filter
+                                .ignore_if_empty = checked;
+                        }
+                        OptionType::FilterIgnoreColumn => {
+                            self.column_option_selected
+                                .as_mut()
+                                .unwrap()
+                                .save_options
+                                .filter
+                                .ignore_column = checked;
 
-                self.column_options_state = combo_box::State::new(self.column_options.clone());
+                            self.column_options
+                                .get_mut(index)
+                                .unwrap()
+                                .save_options
+                                .filter
+                                .ignore_column = checked;
+                        }
+                        _ => {}
+                    };
 
+                    self.column_options_state = combo_box::State::new(self.column_options.clone());
+                }
                 Command::none()
             }
-            FastFileFlowMessage::FilterIgnoreColumn(index, checked) => {
-                self.column_option_selected
-                    .as_mut()
-                    .unwrap()
-                    .save_options
-                    .filter
-                    .ignore_column = checked;
+            FastFileFlowMessage::ProcessEvent(index, checked, option_type) => {
+                if self.column_option_selected != None {
+                    match option_type {
+                        OptionType::ProcessTrim => {
+                            self.column_option_selected
+                                .as_mut()
+                                .unwrap()
+                                .save_options
+                                .process
+                                .trim = checked;
 
-                self.column_options
-                    .get_mut(index)
-                    .unwrap()
-                    .save_options
-                    .filter
-                    .ignore_column = checked;
+                            self.column_options
+                                .get_mut(index)
+                                .unwrap()
+                                .save_options
+                                .process
+                                .trim = checked;
+                        }
+                        OptionType::ProcessReplaceIfEmpty => {
+                            self.column_option_selected
+                                .as_mut()
+                                .unwrap()
+                                .save_options
+                                .process
+                                .replace_if_empty = checked;
 
-                self.column_options_state = combo_box::State::new(self.column_options.clone());
+                            self.column_options
+                                .get_mut(index)
+                                .unwrap()
+                                .save_options
+                                .process
+                                .replace_if_empty = checked;
+                        }
+                        OptionType::ProcessReplaceIf => {
+                            self.column_option_selected
+                                .as_mut()
+                                .unwrap()
+                                .save_options
+                                .process
+                                .replace_if = checked;
 
+                            self.column_options
+                                .get_mut(index)
+                                .unwrap()
+                                .save_options
+                                .process
+                                .replace_if = checked;
+                        }
+                        OptionType::ProcessReplaceWith => {
+                            self.column_option_selected
+                                .as_mut()
+                                .unwrap()
+                                .save_options
+                                .process
+                                .replace_with = checked;
+
+                            self.column_options
+                                .get_mut(index)
+                                .unwrap()
+                                .save_options
+                                .process
+                                .replace_with = checked;
+                        }
+                        _ => {}
+                    };
+                    self.column_options_state = combo_box::State::new(self.column_options.clone());
+                }
                 Command::none()
             }
             FastFileFlowMessage::AIButtonClick() => {
@@ -362,6 +441,7 @@ impl iced::Application for FastFileFlow {
         match self.page {
             Page::Main => self.show_main_screen(),
             Page::Filter => self.show_filter_screen(),
+            Page::Process => self.show_process_screen(),
         }
     }
 
