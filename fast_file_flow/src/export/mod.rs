@@ -42,6 +42,7 @@ impl Export {
 
         // Step 1
         let columns_ignore = self.get_ignore_column();
+        let row_ignore_if_empty = self.get_ignored_row_if_empty_indexes();
 
         // Add headers
         let headers: Vec<String> = self
@@ -58,12 +59,18 @@ impl Export {
 
             while let Some(record) = records.next().await {
                 let record = record.unwrap();
+
+                if ignore_row_if_empty(&row_ignore_if_empty, &record) {
+                    continue;
+                }
+
                 let values: Vec<String> = record
                     .iter()
                     .enumerate()
                     .filter(|(i, _)| filter_column_fn(&columns_ignore, i.clone()))
                     .map(|s| s.1.to_string())
                     .collect();
+
                 let _ = wtr.serialize(values);
             }
 
@@ -83,8 +90,29 @@ impl Export {
             .map(|item| item.index)
             .collect()
     }
+
+    fn get_ignored_row_if_empty_indexes(&self) -> Vec<usize> {
+        self.simple_column
+            .iter()
+            .filter(|f| f.save_options.filter.ignore_if_empty == true)
+            .map(|item| item.index)
+            .collect()
+    }
 }
 
 fn filter_column_fn(columns_ignore: &Vec<usize>, index: usize) -> bool {
     !columns_ignore.contains(&index)
+}
+
+fn ignore_row_if_empty(
+    ignore_enabled_index: &Vec<usize>,
+    record: &csv_async::StringRecord,
+) -> bool {
+    record
+        .iter()
+        .enumerate()
+        .filter(|f| ignore_enabled_index.contains(&f.0))
+        .filter(|i| i.1.is_empty())
+        .count()
+        > 0
 }
