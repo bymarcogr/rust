@@ -30,7 +30,7 @@ impl iced::Application for FastFileFlow {
             FastFileFlow {
                 page: Page::Main,
                 theme: Theme::GruvboxLight,
-                input_value: String::from(""),
+                search_value: String::from(""),
                 is_primary_logo: true,
                 clicked_button: String::from(""),
                 selected_file: StoredFile::default(),
@@ -42,7 +42,6 @@ impl iced::Application for FastFileFlow {
                 columns: vec![],
                 rows: vec![],
                 file_loaded: String::from(""),
-
                 progress: 0.0,
                 running: false,
                 header_checked: vec![],
@@ -65,8 +64,8 @@ impl iced::Application for FastFileFlow {
         self.error_message = String::from("");
 
         match message {
-            FastFileFlowMessage::TextBoxChange(string) => {
-                self.input_value = string;
+            FastFileFlowMessage::TextBoxChange(search_value) => {
+                self.search_value = search_value;
                 Command::none()
             }
 

@@ -53,7 +53,7 @@ pub struct FastFileFlow {
     column_options_state: combo_box::State<SimpleColumn>,
 
     theme: Theme,
-    input_value: String,
+    search_value: String,
 }
 
 #[derive(Debug, Clone)]
@@ -137,7 +137,7 @@ impl FastFileFlow {
         );
 
         let text_input: TextInput<'_, FastFileFlowMessage> =
-            text_input(SEARCH_PLACEHOLDER, self.input_value.as_str())
+            text_input(SEARCH_PLACEHOLDER, self.search_value.as_str())
                 .on_input(FastFileFlowMessage::TextBoxChange)
                 .on_submit(FastFileFlowMessage::SearchOnSubmit())
                 .width(Fixed(SEARCH_TEXTBOX_WIDTH))
