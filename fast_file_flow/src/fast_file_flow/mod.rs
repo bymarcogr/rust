@@ -640,6 +640,7 @@ impl FastFileFlow {
             FastFileFlowMessage::ColumnOptionSelected,
         )
         //.on_close(FastFileFlowMessage::ColumnOptionSelectedClosed)
+        .size(12.0)
         .width(Length::Fill);
 
         let index = self
@@ -648,11 +649,12 @@ impl FastFileFlow {
             .unwrap_or_default()
             .index;
 
+        let default_simple_column = SimpleColumn::default();
         let checkbox_ignore_if_empty = checkbox(
             "",
             self.column_options
                 .get(index)
-                .unwrap()
+                .unwrap_or(&default_simple_column)
                 .save_options
                 .filter
                 .ignore_if_empty,
@@ -665,7 +667,7 @@ impl FastFileFlow {
             "",
             self.column_options
                 .get(index)
-                .unwrap()
+                .unwrap_or(&default_simple_column)
                 .save_options
                 .filter
                 .ignore_column,
@@ -675,7 +677,7 @@ impl FastFileFlow {
         .on_toggle(move |is_checked| FastFileFlowMessage::FilterIgnoreColumn(index, is_checked));
 
         let panel_dropdown = column![
-            row![get_text("", false), combo_box],
+            row![combo_box],
             row![TAB_SPACE, horizontal_space()],
             row![
                 get_text("Ignore Row if Empty", false),
