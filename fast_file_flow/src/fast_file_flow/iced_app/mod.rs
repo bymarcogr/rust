@@ -86,7 +86,8 @@ impl iced::Application for FastFileFlow {
             FastFileFlowMessage::LoadFileButtonClick(is_refresh) => {
                 self.enable_loading(true);
 
-                let mut path = String::default();
+                #[allow(unused_assignments)]
+                let mut path = String::from("");
                 if is_refresh {
                     path = String::from(self.file_loaded.clone());
                 } else {

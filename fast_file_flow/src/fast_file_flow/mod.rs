@@ -11,15 +11,13 @@ use crate::save_options::option_type::OptionType;
 use crate::stadistics::data_classification::DataClassification;
 use crate::stadistics::Stadistics;
 use crate::stored_file::StoredFile;
-use crate::util::{
-    get_full_directory, get_logo, get_menu_button, get_text, get_text_size, wrap_tooltip,
-};
+use crate::util::{get_logo, get_menu_button, get_text, get_text_size, wrap_tooltip};
 use iced::widget::{
-    column, container, horizontal_space, responsive, row, scrollable, text, text_input, tooltip,
-    Button, Column, Container, Row, Text, TextInput,
+    column, container, horizontal_space, responsive, row, scrollable, text_input, tooltip, Button,
+    Column, Container, Row, Text, TextInput,
 };
 use iced::Length::Fixed;
-use iced::{Alignment, Border, Color, Command, Font, Length, Padding, Pixels, Theme};
+use iced::{Border, Color, Command, Font, Length, Padding, Pixels, Theme};
 use iced_table::table;
 use iced_widget::checkbox;
 use iced_widget::combo_box;
@@ -58,7 +56,6 @@ pub struct FastFileFlow {
     input_value: String,
 }
 
-// Mensajes para la actualización de la GUI
 #[derive(Debug, Clone)]
 pub enum FastFileFlowMessage {
     Router(Page),
@@ -970,60 +967,4 @@ fn create_section_container_width(
             border,
             ..Default::default()
         })
-}
-
-fn main_page(
-    _value: &str,
-    page_change_event: FastFileFlowMessage,
-) -> Container<FastFileFlowMessage> {
-    // //"Hello, world!".into()-
-    // FastFileFlowMessage::ChangeLogo(false);
-    let button = submit_btn("Cambiar", page_change_event);
-    let image = get_logo(false);
-    let nt = Text::new("Hello iced");
-    let folder = get_full_directory();
-    let text = Text::new(format!("Hello, {0}.", _value))
-        .width(Length::Fill)
-        .horizontal_alignment(iced::alignment::Horizontal::Center);
-    let row1 = Row::new().push(text).push(Text::new(folder));
-    let text_input = text_input("world", _value).on_input(FastFileFlowMessage::TextBoxChange);
-    let row2 = Row::new().push(image).push(nt);
-    let col = Column::new().push(row1).push(row2).push(text_input);
-    let column = Column::new()
-        .push(col)
-        .push(Text::new("Hello iced 2"))
-        .push(button)
-        .padding(Padding::from([50, 20]))
-        .align_items(Alignment::Start)
-        .spacing(40);
-
-    container(column).padding(Padding::from(20))
-}
-
-fn config_page(page_change_event: FastFileFlowMessage) -> Container<'static, FastFileFlowMessage> {
-    // FastFileFlowMessage::ChangeLogo(true);
-    let button = submit_btn("Back", page_change_event);
-    let image = get_logo(true);
-    let column = Column::new()
-        .push(Text::new("Hello iced 2"))
-        .push(image)
-        .push(button)
-        .padding(Padding::from([50, 20]))
-        .align_items(Alignment::Start)
-        .spacing(40);
-
-    container(column).padding(Padding::from(20))
-}
-
-fn submit_btn(name: &str, event: FastFileFlowMessage) -> Button<FastFileFlowMessage> {
-    Button::new(
-        text(name)
-            .horizontal_alignment(iced::alignment::Horizontal::Center)
-            .vertical_alignment(iced::alignment::Vertical::Top)
-            .size(18),
-    )
-    .on_press(event)
-    .width(Length::Fixed(100.0))
-    .height(Length::Fixed(60.0))
-    .style(iced::theme::Button::Primary)
 }
