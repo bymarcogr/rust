@@ -10,6 +10,9 @@ pub struct IcedColumn {
 }
 
 impl IcedColumn {
+    pub fn default() -> Self {
+        IcedColumn::new("".to_string())
+    }
     pub fn new(column_header: String) -> Self {
         let width = 100.0;
 
@@ -20,5 +23,11 @@ impl IcedColumn {
             is_checked: false,
             stadistics: Stadistics::default(),
         }
+    }
+}
+
+impl Default for IcedColumn {
+    fn default() -> Self {
+        IcedColumn::default()
     }
 }

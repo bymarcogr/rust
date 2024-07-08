@@ -2,8 +2,10 @@ use crate::constants::english::*;
 use crate::correlation_analysis::CorrelationAnalysis;
 use crate::dynamictable::simple_column::SimpleColumn;
 use crate::save_options::SaveOptions;
+use crate::stadistics::data_classification::DataClassification;
 use crate::stadistics::Stadistics;
 use crate::stored_file::StoredFile;
+use iced::widget::combo_box;
 use iced::widget::scrollable;
 use iced::Subscription;
 use iced::{Command, Element, Theme};
@@ -43,6 +45,9 @@ impl iced::Application for FastFileFlow {
                 running: false,
                 header_checked: vec![],
                 error_message: String::from(""),
+                column_options: vec![],
+                column_option_selected: None,
+                column_options_state: combo_box::State::new(vec![]),
             },
             Command::none(),
         )
@@ -119,6 +124,9 @@ impl iced::Application for FastFileFlow {
                 self.reset_state();
                 self.rows = selected_file.rows.sample.clone();
                 self.columns = selected_file.columns.headers.clone();
+                self.column_options = selected_file.get_simple_columns();
+                self.column_options_state = combo_box::State::new(self.column_options.clone());
+
                 self.selected_file = selected_file;
                 self.enable_loading(false);
                 Command::none()
@@ -244,11 +252,67 @@ impl iced::Application for FastFileFlow {
                     Command::none()
                 }
             }
+
             FastFileFlowMessage::AnalysisCompleted(error) => {
                 if !&error.is_empty() {
                     self.error_message = error;
                 }
                 self.running = false;
+                Command::none()
+            }
+            FastFileFlowMessage::ColumnOptionSelected(option) => {
+                self.column_option_selected = Some(option.clone());
+                if option.classification == DataClassification::Unknown {
+                    self.get_column_stadistics_message(option.index.clone(), false)
+                } else {
+                    Command::none()
+                }
+            }
+            FastFileFlowMessage::ColumnOptionSelectedClosed => {
+                if let Some(column) = &self.column_option_selected {
+                    println!("No hay Header {}", column.header);
+                } else {
+                    println!("No hay valor");
+                }
+
+                Command::none()
+            }
+            FastFileFlowMessage::FilterIgnoreIfEmpty(index, checked) => {
+                self.column_option_selected
+                    .as_mut()
+                    .unwrap()
+                    .save_options
+                    .filter
+                    .ignore_if_empty = checked;
+
+                self.column_options
+                    .get_mut(index)
+                    .unwrap()
+                    .save_options
+                    .filter
+                    .ignore_if_empty = checked;
+
+                self.column_options_state = combo_box::State::new(self.column_options.clone());
+
+                Command::none()
+            }
+            FastFileFlowMessage::FilterIgnoreColumn(index, checked) => {
+                self.column_option_selected
+                    .as_mut()
+                    .unwrap()
+                    .save_options
+                    .filter
+                    .ignore_column = checked;
+
+                self.column_options
+                    .get_mut(index)
+                    .unwrap()
+                    .save_options
+                    .filter
+                    .ignore_column = checked;
+
+                self.column_options_state = combo_box::State::new(self.column_options.clone());
+
                 Command::none()
             }
             FastFileFlowMessage::AIButtonClick() => {

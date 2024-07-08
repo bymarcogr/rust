@@ -4,7 +4,7 @@ pub mod filter;
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct SaveOptions {
-    filter: FilterOption,
+    pub filter: FilterOption,
 }
 
 impl SaveOptions {

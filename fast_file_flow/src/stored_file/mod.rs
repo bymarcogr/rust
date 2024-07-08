@@ -6,6 +6,7 @@ use crate::{
     constants::path::CSV,
     correlation_analysis::CorrelationAnalysis,
     dynamictable::{iced_column::IcedColumn, iced_row::IcedRow, simple_column::SimpleColumn},
+    save_options::SaveOptions,
     stadistics::{data_classification::DataClassification, Stadistics},
 };
 use chardet::detect;
@@ -73,6 +74,27 @@ impl StoredFile {
                 columns: Self::get_columns(&file_path).await,
                 sintaxis: sintaxis,
             }
+        }
+    }
+
+    pub fn get_simple_columns(&self) -> Vec<SimpleColumn> {
+        if self.columns.total > 0 {
+            let simple_column: Vec<SimpleColumn> = self
+                .columns
+                .headers
+                .iter()
+                .enumerate()
+                .map(|(index, item)| SimpleColumn {
+                    index: index,
+                    header: item.column_header.clone(),
+                    classification: item.stadistics.classification.clone(),
+                    save_options: SaveOptions::default(),
+                })
+                .collect();
+
+            simple_column
+        } else {
+            vec![]
         }
     }
 

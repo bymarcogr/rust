@@ -21,6 +21,7 @@ use iced::Length::Fixed;
 use iced::{Alignment, Border, Color, Command, Font, Length, Padding, Pixels, Theme};
 use iced_table::table;
 use iced_widget::checkbox;
+use iced_widget::combo_box;
 use iced_widget::core::Element;
 use iced_widget::vertical_space;
 use linear::Linear;
@@ -47,6 +48,11 @@ pub struct FastFileFlow {
     running: bool,
     header_checked: Vec<SimpleColumn>,
     error_message: String,
+
+    column_options: Vec<SimpleColumn>,
+    column_option_selected: Option<SimpleColumn>,
+    column_options_state: combo_box::State<SimpleColumn>,
+
     theme: Theme,
     input_value: String,
 }
@@ -80,6 +86,10 @@ pub enum FastFileFlowMessage {
     SyncHeader(scrollable::AbsoluteOffset),
     Resizing(usize, f32),
     Resized,
+    ColumnOptionSelected(SimpleColumn),
+    ColumnOptionSelectedClosed,
+    FilterIgnoreIfEmpty(usize, bool),
+    FilterIgnoreColumn(usize, bool),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -519,98 +529,8 @@ impl FastFileFlow {
     }
 
     fn show_filter_screen(&self) -> Element<'_, FastFileFlowMessage, Theme, iced::Renderer> {
-        let header = 1;
-
-        let checkbox_ignore_if_empty = checkbox("", false)
-            .size(Pixels(14.0))
-            .spacing(Pixels(1.0))
-            .on_toggle(move |is_checked| FastFileFlowMessage::HeaderCheckBoxToggled(0, is_checked));
-
-        let checkbox_ignore_column = checkbox("", false)
-            .size(Pixels(14.0))
-            .spacing(Pixels(1.0))
-            .on_toggle(move |is_checked| FastFileFlowMessage::HeaderCheckBoxToggled(0, is_checked));
-
-        let save_button =
-            Button::new(Text::new("Save")).on_press(FastFileFlowMessage::Router(Page::Main));
-
-        let cancel_button =
-            Button::new(Text::new("Cancel")).on_press(FastFileFlowMessage::Router(Page::Main));
-
-        let panel_dropdown = column![
-            row![
-                get_text("Elige una Columna", false),
-                get_text_size("ComboBox", true, Pixels(PANEL_FONT_SIZE))
-            ],
-            row![TAB_SPACE, horizontal_space()],
-            row![
-                get_text("Ignore Row if Empty", false),
-                TAB_SPACE,
-                (column![checkbox_ignore_if_empty]).padding(Padding::from([3, 0, 0, 0])),
-            ],
-            row![
-                get_text("Ignore Column", false),
-                TAB_SPACE,
-                (column![checkbox_ignore_column]).padding(Padding::from([3, 0, 0, 0])),
-            ],
-            row![TAB_SPACE, horizontal_space()],
-            row![
-                TAB_SPACE,
-                horizontal_space(),
-                save_button,
-                TAB_SPACE,
-                cancel_button
-            ],
-        ];
-
-        let container_correlation = create_section_container(panel_dropdown);
-
-        let panel_column_analysis = column![
-            row![get_text(self.column_stadistics.header.to_string(), true)
-                .height(Length::Fixed(24.0))
-                .width(Length::Fixed(PANEL_WIDTH - 13.0)),],
-            row![
-                get_text("Datatype:", false),
-                get_text_size(
-                    self.column_stadistics.data_type.to_string(),
-                    true,
-                    Pixels(PANEL_FONT_SIZE)
-                )
-            ],
-            row![
-                get_text("Class:", false),
-                get_text_size(
-                    self.column_stadistics.classification.to_string(),
-                    true,
-                    Pixels(PANEL_FONT_SIZE)
-                )
-            ],
-            row![
-                get_text("Minimum:", false),
-                get_text_size(
-                    self.column_stadistics.minimum.as_str(),
-                    true,
-                    Pixels(PANEL_FONT_SIZE)
-                )
-            ],
-            row![
-                get_text("Maximum:", false),
-                get_text_size(
-                    self.column_stadistics.maximum.as_str(),
-                    true,
-                    Pixels(PANEL_FONT_SIZE)
-                )
-            ],
-            row![
-                get_text("Mode:", false),
-                get_text_size(
-                    self.column_stadistics.mode.as_str(),
-                    true,
-                    Pixels(PANEL_FONT_SIZE)
-                )
-            ],
-        ];
-        let container_analysis = create_section_container_width(panel_column_analysis, PANEL_WIDTH);
+        let container_correlation = self.build_filter_panel();
+        let container_analysis = self.build_filter_statistics();
 
         let render = row![
             container_correlation,
@@ -644,6 +564,137 @@ impl FastFileFlow {
                 ..Default::default()
             })
             .into()
+    }
+
+    fn build_filter_statistics(&self) -> Container<FastFileFlowMessage, Theme, iced::Renderer> {
+        let option_selected = self.column_option_selected.clone().unwrap_or_default();
+
+        let default_statistics: IcedColumn = IcedColumn::new(option_selected.header.clone());
+        let column_stadistics = self
+            .columns
+            .get(option_selected.index)
+            .unwrap_or(&default_statistics)
+            .stadistics
+            .clone();
+
+        let panel_column_analysis = column![
+            row![get_text(option_selected.header.to_string(), true)
+                .height(Length::Fixed(24.0))
+                .width(Length::Fixed(PANEL_WIDTH - 13.0)),],
+            row![
+                get_text("Datatype:", false),
+                get_text_size(
+                    column_stadistics.data_type.to_string(),
+                    true,
+                    Pixels(PANEL_FONT_SIZE)
+                )
+            ],
+            row![
+                get_text("Class:", false),
+                get_text_size(
+                    column_stadistics.classification.to_string(),
+                    true,
+                    Pixels(PANEL_FONT_SIZE)
+                )
+            ],
+            row![
+                get_text("Minimum:", false),
+                get_text_size(
+                    column_stadistics.minimum.as_str(),
+                    true,
+                    Pixels(PANEL_FONT_SIZE)
+                )
+            ],
+            row![
+                get_text("Maximum:", false),
+                get_text_size(
+                    column_stadistics.maximum.as_str(),
+                    true,
+                    Pixels(PANEL_FONT_SIZE)
+                )
+            ],
+            row![
+                get_text("Mode:", false),
+                get_text_size(
+                    column_stadistics.mode.as_str(),
+                    true,
+                    Pixels(PANEL_FONT_SIZE)
+                )
+            ],
+        ];
+        let container_analysis = create_section_container_width(panel_column_analysis, PANEL_WIDTH);
+        container_analysis
+    }
+
+    fn build_filter_panel(&self) -> Container<FastFileFlowMessage, Theme, iced::Renderer> {
+        // let save_button =
+        //     Button::new(Text::new("Save")).on_press(FastFileFlowMessage::Router(Page::Main));
+
+        let close_button =
+            Button::new(Text::new("Close")).on_press(FastFileFlowMessage::Router(Page::Main));
+
+        let combo_box = combo_box(
+            &self.column_options_state,
+            "Choose a column",
+            self.column_option_selected.as_ref(),
+            FastFileFlowMessage::ColumnOptionSelected,
+        )
+        //.on_close(FastFileFlowMessage::ColumnOptionSelectedClosed)
+        .width(Length::Fill);
+
+        let index = self
+            .column_option_selected
+            .clone()
+            .unwrap_or_default()
+            .index;
+
+        let checkbox_ignore_if_empty = checkbox(
+            "",
+            self.column_options
+                .get(index)
+                .unwrap()
+                .save_options
+                .filter
+                .ignore_if_empty,
+        )
+        .size(Pixels(14.0))
+        .spacing(Pixels(1.0))
+        .on_toggle(move |is_checked| FastFileFlowMessage::FilterIgnoreIfEmpty(index, is_checked));
+
+        let checkbox_ignore_column = checkbox(
+            "",
+            self.column_options
+                .get(index)
+                .unwrap()
+                .save_options
+                .filter
+                .ignore_column,
+        )
+        .size(Pixels(14.0))
+        .spacing(Pixels(1.0))
+        .on_toggle(move |is_checked| FastFileFlowMessage::FilterIgnoreColumn(index, is_checked));
+
+        let panel_dropdown = column![
+            row![get_text("", false), combo_box],
+            row![TAB_SPACE, horizontal_space()],
+            row![
+                get_text("Ignore Row if Empty", false),
+                TAB_SPACE,
+                (column![checkbox_ignore_if_empty]).padding(Padding::from([3, 0, 0, 0])),
+            ],
+            row![
+                get_text("Ignore Column", false),
+                TAB_SPACE,
+                (column![checkbox_ignore_column]).padding(Padding::from([3, 0, 0, 0])),
+            ],
+            row![TAB_SPACE, horizontal_space()],
+            row![
+                TAB_SPACE,
+                horizontal_space(), // save_button,
+                close_button
+            ],
+        ];
+        create_section_container(panel_dropdown)
     }
 
     fn get_column_stadistics_message(

@@ -8,4 +8,24 @@ pub struct SimpleColumn {
     pub save_options: SaveOptions,
 }
 
-impl SimpleColumn {}
+impl SimpleColumn {
+    pub fn default() -> Self {
+        Self {
+            index: usize::default(),
+            header: String::from(""),
+            classification: DataClassification::default(),
+            save_options: SaveOptions::default(),
+        }
+    }
+}
+
+impl std::fmt::Display for SimpleColumn {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.header)
+    }
+}
+impl Default for SimpleColumn {
+    fn default() -> Self {
+        SimpleColumn::default()
+    }
+}

@@ -366,3 +366,8 @@ impl Stadistics {
         )
     }
 }
+impl Default for Stadistics {
+    fn default() -> Self {
+        Stadistics::default()
+    }
+}
