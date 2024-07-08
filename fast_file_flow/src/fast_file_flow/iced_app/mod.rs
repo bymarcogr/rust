@@ -1,6 +1,7 @@
 use crate::constants::english::*;
 use crate::correlation_analysis::CorrelationAnalysis;
 use crate::dynamictable::simple_column::SimpleColumn;
+use crate::export::Export;
 use crate::save_options::option_type::OptionType;
 use crate::save_options::SaveOptions;
 use crate::stadistics::data_classification::DataClassification;
@@ -235,7 +236,7 @@ impl iced::Application for FastFileFlow {
             FastFileFlowMessage::AnalysisButtonClick() => {
                 if self.header_checked.len() == 2_usize {
                     println!("Inicia Analisis");
-                    self.running = true;
+                    self.enable_loading(true);
 
                     let mut header = self.header_checked.clone();
                     let column_compare = header.pop().unwrap();
@@ -256,7 +257,7 @@ impl iced::Application for FastFileFlow {
                 } else {
                     self.error_message =
                         "Selecciona dos columnas del tipo Cuantitativo".to_string();
-                    self.running = false;
+                    self.enable_loading(false);
                     Command::none()
                 }
             }
@@ -265,7 +266,7 @@ impl iced::Application for FastFileFlow {
                 if !&error.is_empty() {
                     self.error_message = error;
                 }
-                self.running = false;
+                self.enable_loading(false);
                 Command::none()
             }
             FastFileFlowMessage::ColumnOptionSelected(option) => {
@@ -476,7 +477,23 @@ impl iced::Application for FastFileFlow {
                 Command::none()
             }
             FastFileFlowMessage::ExportButtonClick() => {
-                self.clicked_button = String::from("Export Button Clicked");
+                self.enable_loading(true);
+                if self.is_file_loaded() {
+                    println!("Inicia Export");
+                    let mut export_file =
+                        Export::new(self.selected_file.clone(), self.column_options.clone());
+                    Command::perform(async move { export_file.save().await }, |saved_file| {
+                        FastFileFlowMessage::ExportCompletedEvent(saved_file)
+                    })
+                } else {
+                    self.set_file_not_found_error();
+                    self.enable_loading(false);
+                    Command::none()
+                }
+            }
+            FastFileFlowMessage::ExportCompletedEvent(file_saved) => {
+                println!("{file_saved}");
+                self.enable_loading(false);
                 Command::none()
             }
             FastFileFlowMessage::SearchOnSubmit() => {

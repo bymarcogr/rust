@@ -17,12 +17,14 @@ use futures::stream::StreamExt;
 use rayon::prelude::*;
 use row_stored::RowStored;
 use serde_json::Value;
+use std::time::{SystemTime, UNIX_EPOCH};
 use std::{fs::metadata, io::Cursor, path::Path};
 use tokio::{
     fs::File,
     io::{AsyncBufReadExt, AsyncReadExt, BufReader},
     time::Instant,
 };
+
 #[derive(Debug, Clone)]
 pub struct StoredFile {
     pub file_path: String,
@@ -300,5 +302,23 @@ impl StoredFile {
         vec.par_iter()
             .map(|s| s.parse::<f64>().unwrap_or(0.0))
             .collect()
+    }
+
+    pub fn get_export_path(&self) -> String {
+        let path = Path::new(&self.file_path);
+        let stem = path.file_stem().unwrap_or_default();
+        let extension = path.extension().unwrap_or_default();
+        let ticks = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
+
+        let mut new_file_name = format!("{}_export_{}", stem.to_string_lossy(), ticks);
+        if !extension.is_empty() {
+            new_file_name.push_str(&format!(".{}", extension.to_string_lossy()));
+        }
+
+        let new_path = path.with_file_name(new_file_name);
+        new_path.to_string_lossy().into_owned()
     }
 }

@@ -88,6 +88,7 @@ pub enum FastFileFlowMessage {
     PreviewButtonClick(),
     SaveButtonClick(),
     ExportButtonClick(),
+    ExportCompletedEvent(String),
     SearchOnSubmit(),
     SyncHeader(scrollable::AbsoluteOffset),
     Resizing(usize, f32),
@@ -902,16 +903,16 @@ impl FastFileFlow {
 
     fn enable_loading(&mut self, activate: bool) {
         self.running = activate;
-        if !self.running {
-            self.progress = 0.0;
-        }
+        // if !self.running {
+        //     self.progress = 0.0;
+        // }
     }
 
     fn reset_state(&mut self) {
         self.column_stadistics = Stadistics::default();
         self.correlation_file = CorrelationAnalysis::default();
         self.progress = 0.0;
-        self.running = false;
+        self.enable_loading(false);
         self.header_checked = vec![];
     }
 
