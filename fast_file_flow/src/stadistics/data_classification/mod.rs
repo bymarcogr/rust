@@ -17,4 +17,12 @@ impl DataClassification {
     pub fn default() -> Self {
         DataClassification::Unknown
     }
+
+    pub fn from_string(unwrap: &str) -> DataClassification {
+        match unwrap {
+            "Qualitative" => DataClassification::Qualitative,
+            "Quantitative" => DataClassification::Quantitative,
+            _ => DataClassification::Unknown,
+        }
+    }
 }

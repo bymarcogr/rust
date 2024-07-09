@@ -1,4 +1,3 @@
-use crate::ai::k_means::KMeansClustering;
 use crate::constants::english::*;
 use crate::correlation_analysis::CorrelationAnalysis;
 use crate::dynamictable::simple_column::SimpleColumn;
@@ -11,8 +10,9 @@ use crate::stored_file::StoredFile;
 use iced::widget::combo_box;
 use iced::widget::scrollable;
 use iced::Subscription;
-use iced::{Command, Element, Theme};
+use iced::{Command, Element};
 use iced_futures::subscription;
+use native_dialog::FileDialog;
 use std::time::Duration;
 
 use super::FastFileFlow;
@@ -27,33 +27,7 @@ impl iced::Application for FastFileFlow {
 
     // Inicializar el estado de la aplicación aquí
     fn new(_flags: ()) -> (FastFileFlow, Command<Self::Message>) {
-        (
-            FastFileFlow {
-                page: Page::Main,
-                theme: Theme::GruvboxLight,
-                search_value: String::from(""),
-                is_primary_logo: true,
-                clicked_button: String::from(""),
-                selected_file: StoredFile::default(),
-                column_stadistics: Stadistics::default(),
-                correlation_file: CorrelationAnalysis::default(),
-                header: scrollable::Id::unique(),
-                body: scrollable::Id::unique(),
-                footer: scrollable::Id::unique(),
-                columns: vec![],
-                rows: vec![],
-                file_loaded: String::from(""),
-                progress: 0.0,
-                running: false,
-                header_checked: vec![],
-                error_message: String::from(""),
-                column_options: vec![],
-                column_option_selected: None,
-                column_options_state: combo_box::State::new(vec![]),
-                k_means_clustering: KMeansClustering::default(),
-            },
-            Command::none(),
-        )
+        (FastFileFlow::default(), Command::none())
     }
 
     // El título de la ventana de la aplicación
@@ -91,11 +65,13 @@ impl iced::Application for FastFileFlow {
                 let mut path = String::from("");
                 if is_refresh {
                     path = String::from(self.file_loaded.clone());
+                    println!("{path}");
                 } else {
                     path = crate::dialog::load_csv();
                 }
 
                 if path != "" {
+                    println!("{path}");
                     self.file_loaded = path.clone();
                     Command::perform(StoredFile::new(String::from(path)), |stored_file| {
                         FastFileFlowMessage::SetSelectedFile(stored_file)
@@ -547,8 +523,40 @@ impl iced::Application for FastFileFlow {
                 }
             }
             FastFileFlowMessage::SaveButtonClick() => {
-                self.clicked_button = String::from("Save Button Clicked");
-                Command::none()
+                if self.is_file_loaded() {
+                    if let Some(path) = FileDialog::new()
+                        .add_filter("Fast File Flow Project", &["ffflow"])
+                        .set_filename("project.ffflow")
+                        .show_save_single_file()
+                        .ok()
+                        .flatten()
+                    {
+                        let _ = self.save_to_file(path.to_str().unwrap());
+                    }
+
+                    self.save_to_file("project.ffflow").unwrap();
+                    Command::none()
+                } else {
+                    let path = FileDialog::new().show_open_single_file().ok().flatten();
+
+                    let real_path = match path {
+                        Some(n_path) => {
+                            let _ =
+                                self.load_from_file(n_path.to_string_lossy().to_string().as_str());
+                            n_path.to_string_lossy().to_string()
+                        }
+                        None => String::from(""),
+                    };
+                    if real_path.is_empty() {
+                        self.set_file_not_found_error();
+                        self.enable_loading(false);
+                        Command::none()
+                    } else {
+                        Command::perform(async move {}, |_| {
+                            FastFileFlowMessage::LoadFileButtonClick(true)
+                        })
+                    }
+                }
             }
             FastFileFlowMessage::ExportButtonClick() => {
                 self.enable_loading(true);

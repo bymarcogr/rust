@@ -1,7 +1,7 @@
 use crate::option::Option;
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
-pub struct ProccessOption {
+pub struct ProcessOption {
     pub trim: bool,
     pub replace_if_empty: bool,
     pub replace_with: bool,
@@ -11,7 +11,7 @@ pub struct ProccessOption {
     pub replace_if_value: String,
     pub replace_then_value: String,
 }
-impl ProccessOption {
+impl ProcessOption {
     pub fn default() -> Self {
         Self {
             trim: bool::default(),
@@ -47,7 +47,7 @@ impl ProccessOption {
     }
 }
 
-impl Option for ProccessOption {
+impl Option for ProcessOption {
     fn is_dirty(&self) -> bool {
         self.replace_if_empty != bool::default()
             || self.trim != bool::default()

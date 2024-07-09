@@ -9,9 +9,13 @@ use crate::correlation_analysis::CorrelationAnalysis;
 use crate::dynamictable::iced_column::IcedColumn;
 use crate::dynamictable::iced_row::IcedRow;
 use crate::dynamictable::simple_column::SimpleColumn;
+use crate::save_options::filter::FilterOption;
 use crate::save_options::option_type::OptionType;
+use crate::save_options::process::ProcessOption;
+use crate::save_options::SaveOptions;
 use crate::stadistics::data_classification::DataClassification;
 use crate::stadistics::Stadistics;
+use crate::stored_file::file_type::FileType;
 use crate::stored_file::StoredFile;
 use crate::util::get_full_directory;
 use crate::util::{get_logo, get_menu_button, get_text, get_text_size, wrap_tooltip};
@@ -29,6 +33,10 @@ use iced_widget::vertical_space;
 use iced_widget::Image;
 use linear::Linear;
 use num_format::{Locale, ToFormattedString};
+use std::fs::File;
+use std::io::BufRead;
+use std::io::{self, BufReader, BufWriter, Write};
+
 use std::time::Duration;
 mod easing;
 mod iced_app;
@@ -111,6 +119,129 @@ pub enum Page {
 }
 
 impl FastFileFlow {
+    pub fn default() -> Self {
+        Self {
+            page: Page::Main,
+            theme: Theme::GruvboxLight,
+            search_value: String::from(""),
+            is_primary_logo: true,
+            clicked_button: String::from(""),
+            selected_file: StoredFile::default(),
+            column_stadistics: Stadistics::default(),
+            correlation_file: CorrelationAnalysis::default(),
+            header: scrollable::Id::unique(),
+            body: scrollable::Id::unique(),
+            footer: scrollable::Id::unique(),
+            columns: vec![],
+            rows: vec![],
+            file_loaded: String::from(""),
+            progress: 0.0,
+            running: false,
+            header_checked: vec![],
+            error_message: String::from(""),
+            column_options: vec![],
+            column_option_selected: None,
+            column_options_state: combo_box::State::new(vec![]),
+            k_means_clustering: KMeansClustering::default(),
+        }
+    }
+    // Método para guardar selected_file y column_options en un archivo
+    pub fn save_to_file(&self, file_path: &str) -> io::Result<()> {
+        let file = File::create(file_path)?;
+        let mut writer = BufWriter::new(file);
+
+        // Serializa selected_file
+        writeln!(writer, "{}", self.selected_file.file_path)?;
+        writeln!(writer, "{}", self.selected_file.encoding)?;
+        writeln!(writer, "{}", self.selected_file.size)?;
+        writeln!(writer, "{}", self.selected_file.format)?;
+        writeln!(writer, "{}", self.selected_file.sintaxis.to_string())?;
+
+        // Serializa column_options
+        writeln!(writer, "{}", self.column_options.len())?;
+        for column in &self.column_options {
+            writeln!(writer, "{}", column.index)?;
+            writeln!(writer, "{}", column.header)?;
+            writeln!(writer, "{}", column.classification.to_string())?;
+
+            writeln!(writer, "{}", column.save_options.filter.ignore_row_if_empty)?;
+            writeln!(writer, "{}", column.save_options.filter.ignore_column)?;
+            writeln!(writer, "{}", column.save_options.filter.ignore_row_if)?;
+            writeln!(writer, "{}", column.save_options.filter.ignore_row_if_text)?;
+
+            writeln!(writer, "{}", column.save_options.process.trim)?;
+            writeln!(writer, "{}", column.save_options.process.replace_if_empty)?;
+            writeln!(writer, "{}", column.save_options.process.replace_with)?;
+            writeln!(writer, "{}", column.save_options.process.replace_if)?;
+            writeln!(
+                writer,
+                "{}",
+                column.save_options.process.replace_if_empty_value
+            )?;
+            writeln!(writer, "{}", column.save_options.process.replace_with_value)?;
+            writeln!(writer, "{}", column.save_options.process.replace_if_value)?;
+            writeln!(writer, "{}", column.save_options.process.replace_then_value)?;
+        }
+
+        Ok(())
+    }
+
+    pub fn load_from_file(&mut self, file_path: &str) -> io::Result<()> {
+        let file = File::open(file_path)?;
+        let reader = BufReader::new(file);
+        let mut lines = reader.lines();
+
+        // Deserializa selected_file
+        self.selected_file = StoredFile {
+            file_path: lines.next().unwrap()?,
+            encoding: lines.next().unwrap()?,
+            size: lines.next().unwrap()?.parse().unwrap(),
+            format: lines.next().unwrap()?,
+            sintaxis: FileType::from_string(&lines.next().unwrap()?),
+            rows: crate::stored_file::row_stored::RowStored::empty(),
+            columns: crate::stored_file::column_stored::ColumnStored::empty(),
+            file_name: "".to_string(),
+        };
+
+        // Deserializa column_options
+        let column_count: usize = lines.next().unwrap()?.parse().unwrap();
+        self.column_options = Vec::with_capacity(column_count);
+        for _ in 0..column_count {
+            let index = lines.next().unwrap()?.parse().unwrap();
+            let header = lines.next().unwrap()?;
+            let classification = DataClassification::from_string(&lines.next().unwrap()?); // Implementa `from_string`
+
+            let filter = FilterOption {
+                ignore_row_if_empty: lines.next().unwrap()?.parse().unwrap(),
+                ignore_column: lines.next().unwrap()?.parse().unwrap(),
+                ignore_row_if: lines.next().unwrap()?.parse().unwrap(),
+                ignore_row_if_text: lines.next().unwrap()?,
+            };
+
+            let process = ProcessOption {
+                trim: lines.next().unwrap()?.parse().unwrap(),
+                replace_if_empty: lines.next().unwrap()?.parse().unwrap(),
+                replace_with: lines.next().unwrap()?.parse().unwrap(),
+                replace_if: lines.next().unwrap()?.parse().unwrap(),
+                replace_if_empty_value: lines.next().unwrap()?,
+                replace_with_value: lines.next().unwrap()?,
+                replace_if_value: lines.next().unwrap()?,
+                replace_then_value: lines.next().unwrap()?,
+            };
+
+            self.column_options.push(SimpleColumn {
+                index,
+                header,
+                classification,
+                save_options: SaveOptions { filter, process },
+            });
+        }
+
+        self.file_loaded = self.selected_file.file_path.clone();
+
+        Ok(())
+    }
+
     fn show_main_screen(&self) -> Element<'_, FastFileFlowMessage, Theme, iced::Renderer> {
         let (clicked_button, header) = self.build_header();
         let panels = self.build_panels().padding([10.0, 0.0, 0.0, 0.0]);

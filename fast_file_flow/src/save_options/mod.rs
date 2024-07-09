@@ -1,6 +1,6 @@
 use crate::option::Option;
 use filter::FilterOption;
-use process::ProccessOption;
+use process::ProcessOption;
 pub mod filter;
 pub mod option_type;
 pub mod process;
@@ -8,20 +8,20 @@ pub mod process;
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct SaveOptions {
     pub filter: FilterOption,
-    pub process: ProccessOption,
+    pub process: ProcessOption,
 }
 
 impl SaveOptions {
     pub fn default() -> Self {
         Self {
             filter: FilterOption::default(),
-            process: ProccessOption::default(),
+            process: ProcessOption::default(),
         }
     }
     pub fn new() -> Self {
         Self {
             filter: FilterOption::default(),
-            process: ProccessOption::default(),
+            process: ProcessOption::default(),
         }
     }
 }
