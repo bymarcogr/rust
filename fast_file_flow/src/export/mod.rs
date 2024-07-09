@@ -1,5 +1,6 @@
 use csv::WriterBuilder;
 use futures::stream::StreamExt;
+use std::collections::HashMap;
 use tokio::{fs::File, time::Instant};
 
 use crate::{dynamictable::simple_column::SimpleColumn, stored_file::StoredFile};
@@ -45,6 +46,8 @@ impl Export {
         let row_ignore_if_empty = self.get_ignored_row_if_empty_indexes();
         let row_ignore_if_value = self.get_ignored_row_if_value_indexes();
 
+        let replace_with = self.get_replace_value_with();
+
         // Add headers
         let headers: Vec<String> = self
             .simple_column
@@ -68,14 +71,17 @@ impl Export {
                     continue;
                 }
 
-                let values: Vec<String> = record
+                let values: Vec<(usize, String)> = record
                     .iter()
                     .enumerate()
-                    .filter(|(i, _)| filter_column_fn(&columns_ignore, i.clone()))
-                    .map(|s| s.1.to_string())
+                    .filter(|(i, _)| filter_column_fn(&columns_ignore, *i))
+                    .map(|s| (s.0, s.1.to_string()))
                     .collect();
 
-                let _ = wtr.serialize(values);
+                let new_values = replace_value_with(values, &replace_with);
+
+                let finals: Vec<String> = new_values.iter().map(|s| s.1.to_string()).collect();
+                let _ = wtr.serialize(finals);
             }
 
             wtr.flush()
@@ -115,6 +121,19 @@ impl Export {
             })
             .collect()
     }
+
+    fn get_replace_value_with(&self) -> HashMap<usize, String> {
+        self.simple_column
+            .iter()
+            .filter(|f| f.save_options.process.replace_with)
+            .map(|item| {
+                (
+                    item.index,
+                    item.save_options.process.replace_with_value.clone(),
+                )
+            })
+            .collect()
+    }
 }
 
 fn filter_column_fn(columns_ignore: &Vec<usize>, index: usize) -> bool {
@@ -141,8 +160,6 @@ fn ignore_row_if_value(
     record
         .iter()
         .enumerate()
-        // .filter(|f| ignore_enabled_index.contains(&f.0))
-        // .filter(|i| i.1.is_empty())
         .filter(|(i, _)| ignore_enabled_index.iter().any(|(index, _)| index == i))
         .filter(|(i, val)| {
             ignore_enabled_index
@@ -151,4 +168,19 @@ fn ignore_row_if_value(
         })
         .count()
         > 0
+}
+
+fn replace_value_with(
+    values: Vec<(usize, String)>,
+    indices_actualizar: &HashMap<usize, String>,
+) -> Vec<(usize, String)> {
+    values
+        .into_iter()
+        .map(|(i, v)| {
+            indices_actualizar
+                .get(&i)
+                .map(|new_value| (i, new_value.clone()))
+                .unwrap_or((i, v))
+        })
+        .collect()
 }
