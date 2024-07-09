@@ -95,7 +95,6 @@ impl iced::Application for FastFileFlow {
 
                 if path != "" {
                     self.file_loaded = path.clone();
-
                     Command::perform(StoredFile::new(String::from(path)), |stored_file| {
                         FastFileFlowMessage::SetSelectedFile(stored_file)
                     })

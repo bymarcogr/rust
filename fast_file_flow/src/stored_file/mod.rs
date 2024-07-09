@@ -54,6 +54,7 @@ impl StoredFile {
     pub async fn new(file_path: String) -> Self {
         let format = Self::get_file_extension(&file_path);
         let sintaxis = Self::detect_file_type(&file_path).await;
+
         if format != CSV || sintaxis != FileType::CSV {
             Self {
                 file_path: file_path.clone(),
@@ -201,21 +202,24 @@ impl StoredFile {
         let mut buf_reader = BufReader::new(file);
 
         let mut buffer = String::new();
-        for _ in 0..100 {
+        let mut total_bytes_read = 0;
+
+        // Read lines until we have enough content to determine file type or reach 100 lines
+        while total_bytes_read < 8192 {
             let bytes_read = buf_reader.read_line(&mut buffer).await.unwrap();
             if bytes_read == 0 {
                 break;
             }
+            total_bytes_read += bytes_read;
         }
 
         if serde_json::from_str::<Value>(&buffer).is_ok() {
             return FileType::JSON;
         }
+
         let cursor = Cursor::new(buffer);
         let mut rdr = AsyncReaderBuilder::new().create_reader(cursor);
-        let mut records = rdr.records();
-
-        if records.next().await.is_some() {
+        if rdr.records().next().await.is_some() {
             return FileType::CSV;
         }
 
@@ -241,35 +245,6 @@ impl StoredFile {
 
         records_vec
     }
-
-    // pub async fn get_full_column_generic<T>(&self, column_index: &usize) -> Vec<T>
-    // where
-    //     T: FromStr + Send + 'static,
-    //     <T as FromStr>::Err: Debug,
-    // {
-    //     let mut rdr =
-    //         csv_async::AsyncReader::from_reader(File::open(&self.file_path).await.unwrap());
-    //     let index: usize = *column_index;
-
-    //     let handle_records = spawn(async move {
-    //         let mut records_vec = Vec::new();
-    //         let mut records = rdr.records();
-
-    //         while let Some(record) = records.next().await {
-    //             let value = record.unwrap().get(index).unwrap().to_string();
-
-    //             if value.is_empty() {
-    //                 records_vec.push(0);
-    //             } else {
-    //                 let parsed_value: T = value.parse().unwrap();
-    //                 records_vec.push(parsed_value);
-    //             }
-    //         }
-    //         records_vec
-    //     });
-
-    //     handle_records.await.unwrap()
-    // }
 
     pub async fn get_stadistics(&self, column_index: &usize) -> Stadistics {
         Stadistics::new(
