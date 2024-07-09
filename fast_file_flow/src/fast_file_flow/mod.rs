@@ -648,7 +648,9 @@ impl FastFileFlow {
             Button::new(Text::new("Close")).on_press(FastFileFlowMessage::Router(Page::Main));
 
         let combo_box = self.build_header_combo_box();
-
+        if self.column_option_selected == Option::None {
+            println!("Filter None");
+        }
         let index = self
             .column_option_selected
             .clone()
@@ -668,7 +670,7 @@ impl FastFileFlow {
             index,
             filter.ignore_row_if_empty,
             OptionType::FilterIgnoreIfEmpty,
-            "Ignore Row if Empty".to_string(),
+            "Ignore row if empty".to_string(),
             FastFileFlowMessage::FilterEvent,
         );
 
@@ -676,7 +678,7 @@ impl FastFileFlow {
             index,
             filter.ignore_column,
             OptionType::FilterIgnoreColumn,
-            "Ignore Column".to_string(),
+            "Ignore column".to_string(),
             FastFileFlowMessage::FilterEvent,
         );
 
@@ -684,7 +686,7 @@ impl FastFileFlow {
             index,
             filter.ignore_row_if,
             OptionType::FilterIgnoreIf,
-            "Ignore if ".to_string(),
+            "Ignore row if".to_string(),
             FastFileFlowMessage::FilterEvent,
         );
 
@@ -761,7 +763,9 @@ impl FastFileFlow {
             Button::new(Text::new("Close")).on_press(FastFileFlowMessage::Router(Page::Main));
 
         let combo_box = self.build_header_combo_box();
-
+        if self.column_option_selected == Option::None {
+            println!("Process None");
+        }
         let index = self
             .column_option_selected
             .clone()
@@ -778,7 +782,11 @@ impl FastFileFlow {
 
         let checkbox_trim = self.build_checkbox(
             index,
-            process.trim,
+            if self.column_option_selected != None {
+                process.trim
+            } else {
+                false
+            },
             OptionType::ProcessTrim,
             "Trim".to_string(),
             FastFileFlowMessage::ProcessEvent,
@@ -933,6 +941,7 @@ impl FastFileFlow {
         self.progress = 0.0;
         self.enable_loading(false);
         self.header_checked = vec![];
+        self.column_option_selected = Option::None;
     }
 
     fn is_file_loaded(&self) -> bool {

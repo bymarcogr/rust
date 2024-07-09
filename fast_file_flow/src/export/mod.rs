@@ -66,20 +66,21 @@ impl Export {
             while let Some(record) = records.next().await {
                 let record = record.unwrap();
 
-                if ignore_row_if_empty(&row_ignore_if_empty, &record) {
-                    continue;
-                }
-                if ignore_row_if_value(&row_ignore_if_value, &record) {
-                    continue;
-                }
-
                 let mut values: Vec<(usize, String)> = record
                     .iter()
                     .enumerate()
-                    .filter(|(i, _)| filter_column_fn(&columns_ignore, *i))
                     .map(|s| (s.0, s.1.to_string()))
                     .collect();
 
+                if ignore_row_if_empty(&values, &row_ignore_if_empty) {
+                    continue;
+                }
+
+                if ignore_row_if_value(&values, &row_ignore_if_value) {
+                    continue;
+                }
+
+                values = remove_columns(&values, &columns_ignore);
                 values = replace_do_trim(values, &replace_with_trim);
                 values = replace_value_if_empty(values, &replace_if_empty);
                 values = replace_value_with(values, &replace_with);
@@ -182,38 +183,39 @@ fn filter_column_fn(columns_ignore: &Vec<usize>, index: usize) -> bool {
     !columns_ignore.contains(&index)
 }
 
-fn ignore_row_if_empty(
-    ignore_enabled_index: &Vec<usize>,
-    record: &csv_async::StringRecord,
-) -> bool {
-    record
-        .iter()
-        .enumerate()
-        .filter(|f| ignore_enabled_index.contains(&f.0))
-        .filter(|i| i.1.is_empty())
-        .count()
-        > 0
+fn ignore_row_if_empty(row: &Vec<(usize, String)>, ignore_enabled_index: &Vec<usize>) -> bool {
+    if ignore_enabled_index.is_empty() {
+        return false;
+    }
+    row.iter()
+        .filter(|(i, _)| ignore_enabled_index.contains(i))
+        .any(|(_, val)| val.is_empty())
 }
 
 fn ignore_row_if_value(
+    row: &Vec<(usize, String)>,
     ignore_enabled_index: &HashMap<usize, String>,
-    record: &csv_async::StringRecord,
 ) -> bool {
-    record.iter().enumerate().any(|(i, val)| {
-        if let Some(expected_val) = ignore_enabled_index.get(&i) {
-            expected_val == val
-        } else {
-            false
-        }
+    if ignore_enabled_index.is_empty() {
+        return false;
+    }
+
+    row.iter().any(|(i, val)| {
+        ignore_enabled_index
+            .get(i)
+            .map_or(false, |expected_val| expected_val == val)
     })
 }
 
 fn replace_value_with(
-    values: Vec<(usize, String)>,
+    row: Vec<(usize, String)>,
     replace_index: &HashMap<usize, String>,
 ) -> Vec<(usize, String)> {
-    values
-        .into_iter()
+    if replace_index.is_empty() {
+        return row;
+    }
+
+    row.into_iter()
         .map(|(i, v)| {
             replace_index
                 .get(&i)
@@ -224,11 +226,14 @@ fn replace_value_with(
 }
 
 fn replace_value_if_empty(
-    values: Vec<(usize, String)>,
+    row: Vec<(usize, String)>,
     replace_index: &HashMap<usize, String>,
 ) -> Vec<(usize, String)> {
-    values
-        .into_iter()
+    if replace_index.is_empty() {
+        return row;
+    }
+
+    row.into_iter()
         .map(|(i, v)| {
             if v.is_empty() {
                 replace_index
@@ -242,12 +247,12 @@ fn replace_value_if_empty(
         .collect()
 }
 
-fn replace_do_trim(
-    values: Vec<(usize, String)>,
-    replace_index: &Vec<usize>,
-) -> Vec<(usize, String)> {
-    values
-        .into_iter()
+fn replace_do_trim(row: Vec<(usize, String)>, replace_index: &Vec<usize>) -> Vec<(usize, String)> {
+    if replace_index.is_empty() {
+        return row;
+    }
+
+    row.into_iter()
         .map(|(i, v)| {
             if replace_index.contains(&i) {
                 (i, v.trim().to_string())
@@ -259,13 +264,16 @@ fn replace_do_trim(
 }
 
 fn replace_value_if_equals(
-    values: Vec<(usize, String)>,
-    indices_actualizar: &HashMap<usize, (String, String)>,
+    row: Vec<(usize, String)>,
+    replace_index: &HashMap<usize, (String, String)>,
 ) -> Vec<(usize, String)> {
-    values
-        .into_iter()
+    if replace_index.is_empty() {
+        return row;
+    }
+
+    row.into_iter()
         .map(|(i, v)| {
-            if let Some((current_value, new_value)) = indices_actualizar.get(&i) {
+            if let Some((current_value, new_value)) = replace_index.get(&i) {
                 if &v == current_value {
                     (i, new_value.clone())
                 } else {
@@ -275,5 +283,12 @@ fn replace_value_if_equals(
                 (i, v)
             }
         })
+        .collect()
+}
+
+fn remove_columns(row: &Vec<(usize, String)>, columns_ignore: &Vec<usize>) -> Vec<(usize, String)> {
+    row.iter()
+        .filter(|(i, _)| !columns_ignore.contains(i))
+        .map(|(i, s)| (*i, s.clone()))
         .collect()
 }

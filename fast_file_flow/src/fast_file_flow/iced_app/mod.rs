@@ -108,7 +108,6 @@ impl iced::Application for FastFileFlow {
             FastFileFlowMessage::Tick(progress) => {
                 if self.running {
                     self.progress = progress;
-                    //println!("Tick - {}", progress)
                 }
                 Command::none()
             }
@@ -532,6 +531,7 @@ impl iced::Application for FastFileFlow {
             FastFileFlowMessage::ExportCompletedEvent(file_saved) => {
                 println!("{file_saved}");
                 self.enable_loading(false);
+                self.error_message = format!("File Saved: {file_saved}");
                 Command::none()
             }
             FastFileFlowMessage::SearchOnSubmit() => {

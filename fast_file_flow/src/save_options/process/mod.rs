@@ -14,7 +14,7 @@ pub struct ProccessOption {
 impl ProccessOption {
     pub fn default() -> Self {
         Self {
-            trim: true,
+            trim: bool::default(),
             replace_if_empty: bool::default(),
             replace_with: bool::default(),
             replace_if: bool::default(),
@@ -50,7 +50,7 @@ impl ProccessOption {
 impl Option for ProccessOption {
     fn is_dirty(&self) -> bool {
         self.replace_if_empty != bool::default()
-            || self.trim != true
+            || self.trim != bool::default()
             || self.replace_with != bool::default()
             || self.replace_if != bool::default()
             || self.replace_with_value != String::default()
