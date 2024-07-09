@@ -45,8 +45,8 @@ impl Export {
         let columns_ignore = self.get_ignore_column();
         let row_ignore_if_empty = self.get_ignored_row_if_empty_indexes();
         let row_ignore_if_value = self.get_ignored_row_if_value_indexes();
-
         let replace_with = self.get_replace_value_with();
+        let replace_if_empty = self.get_replace_value_if_empty();
 
         // Add headers
         let headers: Vec<String> = self
@@ -78,7 +78,9 @@ impl Export {
                     .map(|s| (s.0, s.1.to_string()))
                     .collect();
 
-                let new_values = replace_value_with(values, &replace_with);
+                let mut new_values = replace_value_with(values, &replace_with);
+
+                new_values = replace_value_if_empty(new_values, &replace_if_empty);
 
                 let finals: Vec<String> = new_values.iter().map(|s| s.1.to_string()).collect();
                 let _ = wtr.serialize(finals);
@@ -109,7 +111,7 @@ impl Export {
             .collect()
     }
 
-    fn get_ignored_row_if_value_indexes(&self) -> Vec<(usize, String)> {
+    fn get_ignored_row_if_value_indexes(&self) -> HashMap<usize, String> {
         self.simple_column
             .iter()
             .filter(|f| f.save_options.filter.ignore_row_if)
@@ -134,6 +136,19 @@ impl Export {
             })
             .collect()
     }
+
+    fn get_replace_value_if_empty(&self) -> HashMap<usize, String> {
+        self.simple_column
+            .iter()
+            .filter(|f| f.save_options.process.replace_if_empty)
+            .map(|item| {
+                (
+                    item.index,
+                    item.save_options.process.replace_if_empty_value.clone(),
+                )
+            })
+            .collect()
+    }
 }
 
 fn filter_column_fn(columns_ignore: &Vec<usize>, index: usize) -> bool {
@@ -154,20 +169,16 @@ fn ignore_row_if_empty(
 }
 
 fn ignore_row_if_value(
-    ignore_enabled_index: &Vec<(usize, String)>,
+    ignore_enabled_index: &HashMap<usize, String>,
     record: &csv_async::StringRecord,
 ) -> bool {
-    record
-        .iter()
-        .enumerate()
-        .filter(|(i, _)| ignore_enabled_index.iter().any(|(index, _)| index == i))
-        .filter(|(i, val)| {
-            ignore_enabled_index
-                .iter()
-                .any(|(index, value)| index == i && val == value)
-        })
-        .count()
-        > 0
+    record.iter().enumerate().any(|(i, val)| {
+        if let Some(expected_val) = ignore_enabled_index.get(&i) {
+            expected_val == val
+        } else {
+            false
+        }
+    })
 }
 
 fn replace_value_with(
@@ -181,6 +192,25 @@ fn replace_value_with(
                 .get(&i)
                 .map(|new_value| (i, new_value.clone()))
                 .unwrap_or((i, v))
+        })
+        .collect()
+}
+
+fn replace_value_if_empty(
+    values: Vec<(usize, String)>,
+    indices_actualizar: &HashMap<usize, String>,
+) -> Vec<(usize, String)> {
+    values
+        .into_iter()
+        .map(|(i, v)| {
+            if v.is_empty() {
+                indices_actualizar
+                    .get(&i)
+                    .map(|new_value| (i, new_value.clone()))
+                    .unwrap_or((i, v))
+            } else {
+                (i, v)
+            }
         })
         .collect()
 }
