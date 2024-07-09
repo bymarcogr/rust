@@ -2,7 +2,7 @@ use native_dialog::FileDialog;
 
 pub fn load_csv() -> String {
     let path = FileDialog::new()
-        .add_filter("CSV Files", &["csv"])
+        .add_filter("CSV Files|Fast File Flow Project", &["csv", "ffflow"])
         .set_location("~")
         .show_open_single_file()
         .unwrap();

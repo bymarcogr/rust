@@ -81,6 +81,11 @@ impl StoredFile {
         }
     }
 
+    pub async fn reload(&mut self) {
+        self.rows = StoredFile::get_rows(&self.file_path.to_string()).await;
+        self.columns = StoredFile::get_columns(&self.file_path.to_string()).await;
+    }
+
     pub fn get_simple_columns(&self) -> Vec<SimpleColumn> {
         if self.columns.total > 0 {
             let simple_column: Vec<SimpleColumn> = self
@@ -106,7 +111,7 @@ impl StoredFile {
         metadata(&file_path).map(|m| m.len()).unwrap() as f64 / 1024.0
     }
 
-    fn get_file_name(file_path: &str) -> String {
+    pub fn get_file_name(file_path: &str) -> String {
         let path = Path::new(file_path);
         let mut file_name = String::from("");
 
@@ -117,7 +122,7 @@ impl StoredFile {
         file_name.to_owned()
     }
 
-    fn get_file_extension(file_path: &str) -> String {
+    pub fn get_file_extension(file_path: &str) -> String {
         let path = Path::new(file_path);
         let mut file_extension = String::from("");
 
@@ -128,7 +133,7 @@ impl StoredFile {
         file_extension.to_uppercase().to_owned()
     }
 
-    async fn get_columns(file_path: &str) -> ColumnStored {
+    pub async fn get_columns(file_path: &str) -> ColumnStored {
         let mut rdr = csv_async::AsyncReader::from_reader(File::open(file_path).await.unwrap());
         let counter = rdr.headers().await.unwrap().into_iter().count() as u64;
         let headers_vec: Vec<IcedColumn> = rdr
@@ -144,7 +149,7 @@ impl StoredFile {
     }
 
     #[warn(unused_assignments)]
-    async fn get_rows(file_path: &str) -> RowStored {
+    pub async fn get_rows(file_path: &str) -> RowStored {
         let start = Instant::now();
         let mut rdr = csv_async::AsyncReader::from_reader(File::open(file_path).await.unwrap());
         let mut rdr_count =

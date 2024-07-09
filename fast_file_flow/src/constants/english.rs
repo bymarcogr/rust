@@ -17,8 +17,8 @@ pub const ANALYSIS_ICON: &str = "Analysis";
 pub const PIPELINE_ICON: &str = "Pipeline";
 pub const AI_ICON: &str = "Artifitial Intelligence";
 pub const PREVIEW_ICON: &str = "Preview";
-pub const SAVE_ICON: &str = "Save";
-pub const EXPORT_ICON: &str = "Export";
-pub const OPEN_ICON: &str = "Open";
+pub const SAVE_ICON: &str = "Save Project";
+pub const EXPORT_ICON: &str = "Export File";
+pub const OPEN_ICON: &str = "Open FIle/Project";
 
 pub const PROCESSED_FILENAME: &str = "processed";

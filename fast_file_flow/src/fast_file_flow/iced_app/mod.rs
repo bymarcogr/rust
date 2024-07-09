@@ -1,4 +1,6 @@
 use crate::constants::english::*;
+use crate::constants::path::CSV;
+use crate::constants::path::FFFLOW;
 use crate::correlation_analysis::CorrelationAnalysis;
 use crate::dynamictable::simple_column::SimpleColumn;
 use crate::export::Export;
@@ -65,17 +67,36 @@ impl iced::Application for FastFileFlow {
                 let mut path = String::from("");
                 if is_refresh {
                     path = String::from(self.file_loaded.clone());
-                    println!("{path}");
                 } else {
                     path = crate::dialog::load_csv();
                 }
 
-                if path != "" {
-                    println!("{path}");
-                    self.file_loaded = path.clone();
-                    Command::perform(StoredFile::new(String::from(path)), |stored_file| {
-                        FastFileFlowMessage::SetSelectedFile(stored_file)
-                    })
+                if !path.is_empty() {
+                    let extension = StoredFile::get_file_extension(&path);
+                    println!("{}", extension);
+
+                    if extension == CSV {
+                        println!("Csv files");
+                        self.file_loaded = path.clone();
+                        Command::perform(StoredFile::new(path.clone()), |stored_file| {
+                            FastFileFlowMessage::SetSelectedFile(stored_file)
+                        })
+                    } else if extension == FFFLOW {
+                        println!("HEllo");
+                        match self.load_from_file(path.as_str()) {
+                            Ok(_) => Command::perform(async move {}, |_| {
+                                FastFileFlowMessage::SetLoadedProject()
+                            }),
+                            Err(_) => {
+                                self.enable_loading(false);
+                                self.set_error("Invalid project file");
+                                self.reset_state();
+                                Command::none()
+                            }
+                        }
+                    } else {
+                        Command::none()
+                    }
                 } else {
                     self.enable_loading(false);
                     self.set_file_not_found_error();
@@ -93,7 +114,7 @@ impl iced::Application for FastFileFlow {
             FastFileFlowMessage::SetSelectedFile(selected_file) => {
                 if selected_file.sintaxis.clone() != crate::stored_file::file_type::FileType::CSV {
                     self.error_message = format!(
-                        "Sintaxis {} en el archivo no es compatible, seleccione un archivo CSV válido",
+                        "Invalid sintexis {} in the file, it is non compatible with the ap, please use a valid csv",
                         &selected_file.sintaxis.to_string()
                     )
                     .to_string();
@@ -105,6 +126,20 @@ impl iced::Application for FastFileFlow {
                 self.column_options_state = combo_box::State::new(self.column_options.clone());
 
                 self.selected_file = selected_file;
+                self.enable_loading(false);
+                Command::none()
+            }
+            FastFileFlowMessage::SetLoadedProject() => {
+                self.selected_file.file_name = StoredFile::get_file_name(&self.file_loaded);
+                let future = self.selected_file.reload();
+                futures::executor::block_on(future);
+
+                self.reset_state();
+
+                self.rows = self.selected_file.rows.sample.clone();
+                self.columns = self.selected_file.columns.headers.clone();
+                self.column_options_state = combo_box::State::new(self.column_options.clone());
+
                 self.enable_loading(false);
                 Command::none()
             }
@@ -533,30 +568,11 @@ impl iced::Application for FastFileFlow {
                     {
                         let _ = self.save_to_file(path.to_str().unwrap());
                     }
-
-                    self.save_to_file("project.ffflow").unwrap();
-                    Command::none()
                 } else {
-                    let path = FileDialog::new().show_open_single_file().ok().flatten();
-
-                    let real_path = match path {
-                        Some(n_path) => {
-                            let _ =
-                                self.load_from_file(n_path.to_string_lossy().to_string().as_str());
-                            n_path.to_string_lossy().to_string()
-                        }
-                        None => String::from(""),
-                    };
-                    if real_path.is_empty() {
-                        self.set_file_not_found_error();
-                        self.enable_loading(false);
-                        Command::none()
-                    } else {
-                        Command::perform(async move {}, |_| {
-                            FastFileFlowMessage::LoadFileButtonClick(true)
-                        })
-                    }
+                    self.set_file_not_found_error();
+                    self.enable_loading(false);
                 }
+                Command::none()
             }
             FastFileFlowMessage::ExportButtonClick() => {
                 self.enable_loading(true);

@@ -78,6 +78,7 @@ pub enum FastFileFlowMessage {
     LoadFileButtonClick(bool),
     Tick(f32),
     SetSelectedFile(StoredFile),
+    SetLoadedProject(),
     SetStadisticsFile(usize, Stadistics, bool),
     HeaderClicked(usize),
     HeaderCheckBoxToggled(usize, bool),
@@ -186,47 +187,71 @@ impl FastFileFlow {
         Ok(())
     }
 
-    pub fn load_from_file(&mut self, file_path: &str) -> io::Result<()> {
+    pub fn load_from_file(&mut self, file_path: &str) -> std::result::Result<(), std::io::Error> {
         let file = File::open(file_path)?;
         let reader = BufReader::new(file);
         let mut lines = reader.lines();
 
+        fn next_line(
+            lines: &mut std::io::Lines<BufReader<File>>,
+        ) -> std::result::Result<String, io::Error> {
+            match lines.next() {
+                Some(Ok(line)) => Ok(line),
+                Some(Err(e)) => Err(e),
+                None => Err(io::Error::new(
+                    io::ErrorKind::UnexpectedEof,
+                    "Unexpected end of file",
+                )),
+            }
+        }
+
+        fn parse_line<T: std::str::FromStr>(
+            lines: &mut std::io::Lines<BufReader<File>>,
+        ) -> std::result::Result<T, io::Error>
+        where
+            T::Err: std::fmt::Debug,
+        {
+            let line = next_line(lines)?;
+            line.parse::<T>()
+                .map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "Parse error"))
+        }
+
         // Deserializa selected_file
         self.selected_file = StoredFile {
-            file_path: lines.next().unwrap()?,
-            encoding: lines.next().unwrap()?,
-            size: lines.next().unwrap()?.parse().unwrap(),
-            format: lines.next().unwrap()?,
-            sintaxis: FileType::from_string(&lines.next().unwrap()?),
+            file_path: next_line(&mut lines)?,
+            encoding: next_line(&mut lines)?,
+            size: parse_line::<f64>(&mut lines)?,
+            format: next_line(&mut lines)?,
+            sintaxis: FileType::from_string(&next_line(&mut lines)?),
             rows: crate::stored_file::row_stored::RowStored::empty(),
             columns: crate::stored_file::column_stored::ColumnStored::empty(),
             file_name: "".to_string(),
         };
 
         // Deserializa column_options
-        let column_count: usize = lines.next().unwrap()?.parse().unwrap();
+        let column_count = parse_line::<usize>(&mut lines)?;
         self.column_options = Vec::with_capacity(column_count);
         for _ in 0..column_count {
-            let index = lines.next().unwrap()?.parse().unwrap();
-            let header = lines.next().unwrap()?;
-            let classification = DataClassification::from_string(&lines.next().unwrap()?); // Implementa `from_string`
+            let index = parse_line::<usize>(&mut lines)?;
+            let header = next_line(&mut lines)?;
+            let classification = DataClassification::from_string(&next_line(&mut lines)?);
 
             let filter = FilterOption {
-                ignore_row_if_empty: lines.next().unwrap()?.parse().unwrap(),
-                ignore_column: lines.next().unwrap()?.parse().unwrap(),
-                ignore_row_if: lines.next().unwrap()?.parse().unwrap(),
-                ignore_row_if_text: lines.next().unwrap()?,
+                ignore_row_if_empty: parse_line::<bool>(&mut lines)?,
+                ignore_column: parse_line::<bool>(&mut lines)?,
+                ignore_row_if: parse_line::<bool>(&mut lines)?,
+                ignore_row_if_text: next_line(&mut lines)?,
             };
 
             let process = ProcessOption {
-                trim: lines.next().unwrap()?.parse().unwrap(),
-                replace_if_empty: lines.next().unwrap()?.parse().unwrap(),
-                replace_with: lines.next().unwrap()?.parse().unwrap(),
-                replace_if: lines.next().unwrap()?.parse().unwrap(),
-                replace_if_empty_value: lines.next().unwrap()?,
-                replace_with_value: lines.next().unwrap()?,
-                replace_if_value: lines.next().unwrap()?,
-                replace_then_value: lines.next().unwrap()?,
+                trim: parse_line::<bool>(&mut lines)?,
+                replace_if_empty: parse_line::<bool>(&mut lines)?,
+                replace_with: parse_line::<bool>(&mut lines)?,
+                replace_if: parse_line::<bool>(&mut lines)?,
+                replace_if_empty_value: next_line(&mut lines)?,
+                replace_with_value: next_line(&mut lines)?,
+                replace_if_value: next_line(&mut lines)?,
+                replace_then_value: next_line(&mut lines)?,
             };
 
             self.column_options.push(SimpleColumn {
@@ -1149,9 +1174,6 @@ impl FastFileFlow {
 
     fn enable_loading(&mut self, activate: bool) {
         self.running = activate;
-        // if !self.running {
-        //     self.progress = 0.0;
-        // }
     }
 
     fn reset_state(&mut self) {
