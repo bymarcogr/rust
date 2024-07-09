@@ -48,6 +48,7 @@ impl Export {
         let replace_with = self.get_replace_value_with();
         let replace_if_empty = self.get_replace_value_if_empty();
         let replace_with_trim = self.get_do_trim();
+        let replace_if_value = self.get_replace_value_if_value();
 
         // Add headers
         let headers: Vec<String> = self
@@ -72,19 +73,19 @@ impl Export {
                     continue;
                 }
 
-                let values: Vec<(usize, String)> = record
+                let mut values: Vec<(usize, String)> = record
                     .iter()
                     .enumerate()
                     .filter(|(i, _)| filter_column_fn(&columns_ignore, *i))
                     .map(|s| (s.0, s.1.to_string()))
                     .collect();
 
-                let mut new_values = replace_value_with(values, &replace_with);
+                values = replace_do_trim(values, &replace_with_trim);
+                values = replace_value_if_empty(values, &replace_if_empty);
+                values = replace_value_with(values, &replace_with);
+                values = replace_value_if_equals(values, &replace_if_value);
 
-                new_values = replace_value_if_empty(new_values, &replace_if_empty);
-                new_values = replace_do_trim(new_values, &replace_with_trim);
-
-                let finals: Vec<String> = new_values.iter().map(|s| s.1.to_string()).collect();
+                let finals: Vec<String> = values.iter().map(|s| s.1.to_string()).collect();
                 let _ = wtr.serialize(finals);
             }
 
@@ -159,6 +160,22 @@ impl Export {
             .map(|item| item.index)
             .collect()
     }
+
+    fn get_replace_value_if_value(&self) -> HashMap<usize, (String, String)> {
+        self.simple_column
+            .iter()
+            .filter(|f| f.save_options.process.replace_if)
+            .map(|item| {
+                (
+                    item.index,
+                    (
+                        item.save_options.process.replace_if_value.clone(),
+                        item.save_options.process.replace_then_value.clone(),
+                    ),
+                )
+            })
+            .collect()
+    }
 }
 
 fn filter_column_fn(columns_ignore: &Vec<usize>, index: usize) -> bool {
@@ -193,12 +210,12 @@ fn ignore_row_if_value(
 
 fn replace_value_with(
     values: Vec<(usize, String)>,
-    indices_actualizar: &HashMap<usize, String>,
+    replace_index: &HashMap<usize, String>,
 ) -> Vec<(usize, String)> {
     values
         .into_iter()
         .map(|(i, v)| {
-            indices_actualizar
+            replace_index
                 .get(&i)
                 .map(|new_value| (i, new_value.clone()))
                 .unwrap_or((i, v))
@@ -208,13 +225,13 @@ fn replace_value_with(
 
 fn replace_value_if_empty(
     values: Vec<(usize, String)>,
-    indices_actualizar: &HashMap<usize, String>,
+    replace_index: &HashMap<usize, String>,
 ) -> Vec<(usize, String)> {
     values
         .into_iter()
         .map(|(i, v)| {
             if v.is_empty() {
-                indices_actualizar
+                replace_index
                     .get(&i)
                     .map(|new_value| (i, new_value.clone()))
                     .unwrap_or((i, v))
@@ -227,13 +244,33 @@ fn replace_value_if_empty(
 
 fn replace_do_trim(
     values: Vec<(usize, String)>,
-    indices_actualizar: &Vec<usize>,
+    replace_index: &Vec<usize>,
 ) -> Vec<(usize, String)> {
     values
         .into_iter()
         .map(|(i, v)| {
-            if indices_actualizar.contains(&i) {
+            if replace_index.contains(&i) {
                 (i, v.trim().to_string())
+            } else {
+                (i, v)
+            }
+        })
+        .collect()
+}
+
+fn replace_value_if_equals(
+    values: Vec<(usize, String)>,
+    indices_actualizar: &HashMap<usize, (String, String)>,
+) -> Vec<(usize, String)> {
+    values
+        .into_iter()
+        .map(|(i, v)| {
+            if let Some((current_value, new_value)) = indices_actualizar.get(&i) {
+                if &v == current_value {
+                    (i, new_value.clone())
+                } else {
+                    (i, v)
+                }
             } else {
                 (i, v)
             }
