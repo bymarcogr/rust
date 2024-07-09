@@ -1,3 +1,4 @@
+use crate::ai::k_means::KMeansClustering;
 use crate::constants::english::*;
 use crate::constants::icons::*;
 use crate::constants::sizes::{
@@ -91,6 +92,8 @@ pub enum FastFileFlowMessage {
     SyncHeader(scrollable::AbsoluteOffset),
     Resizing(usize, f32),
     Resized,
+    SetKMeans(KMeansClustering),
+    SetKMeansCompleted(String),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -420,7 +423,8 @@ impl FastFileFlow {
 
         let button_add = get_menu_button(ADD, FastFileFlowMessage::AddButtonClick(), ADD_ICON);
 
-        let button_script = get_menu_button(
+        // Disabled due to un supported library
+        let _button_script = get_menu_button(
             SCRIPT,
             FastFileFlowMessage::ScriptButtonClick(),
             SCRIPT_ICON,
@@ -468,8 +472,8 @@ impl FastFileFlow {
             TAB_SPACE,
             button_add,
             TAB_SPACE,
-            button_script,
-            TAB_SPACE,
+            // button_script,
+            // TAB_SPACE,
             button_pipeline,
             TAB_SPACE,
             button_analysis,

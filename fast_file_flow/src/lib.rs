@@ -1,3 +1,4 @@
+pub mod ai;
 pub mod constants;
 pub mod correlation_analysis;
 pub mod dialog;

@@ -3,6 +3,7 @@ pub mod file_type;
 pub mod row_stored;
 
 use crate::{
+    ai::k_means::KMeansClustering,
     constants::path::CSV,
     correlation_analysis::CorrelationAnalysis,
     dynamictable::{iced_column::IcedColumn, iced_row::IcedRow, simple_column::SimpleColumn},
@@ -269,7 +270,7 @@ impl StoredFile {
             let compare = Self::convert_to_f64(&self.get_full_column(&column_compare.index).await);
             Ok(CorrelationAnalysis::new(&base, &compare).await)
         } else {
-            Err("Error - Seleccione solo columnas del tipo { DataClassification::Quantitative }")
+            Err("Error - Quantitative columns only")
         }
     }
 
@@ -295,5 +296,22 @@ impl StoredFile {
 
         let new_path = path.with_file_name(new_file_name);
         new_path.to_string_lossy().into_owned()
+    }
+
+    pub async fn get_kmeans(
+        &self,
+        column_base: &SimpleColumn,
+        column_compare: &SimpleColumn,
+    ) -> Result<KMeansClustering, &'static str> {
+        if column_base.classification == DataClassification::Quantitative
+            && column_compare.classification == DataClassification::Quantitative
+        {
+            println!("Inicia get_correlation");
+            let base = Self::convert_to_f64(&self.get_full_column(&column_base.index).await);
+            let compare = Self::convert_to_f64(&self.get_full_column(&column_compare.index).await);
+            Ok(KMeansClustering::new(base, compare, 3).await)
+        } else {
+            Err("Error - Seleccione solo columnas del tipo { DataClassification::Quantitative }")
+        }
     }
 }

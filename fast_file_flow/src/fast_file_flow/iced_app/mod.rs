@@ -1,3 +1,5 @@
+use crate::ai::k_means;
+use crate::ai::k_means::KMeansClustering;
 use crate::constants::english::*;
 use crate::correlation_analysis::CorrelationAnalysis;
 use crate::dynamictable::simple_column::SimpleColumn;
@@ -502,8 +504,34 @@ impl iced::Application for FastFileFlow {
                 Command::none()
             }
             FastFileFlowMessage::AIButtonClick() => {
-                self.clicked_button = String::from("AI Button Clicked");
-                Command::none()
+                if self.header_checked.len() == 2_usize {
+                    self.enable_loading(true);
+
+                    let mut header = self.header_checked.clone();
+                    let column_compare = header.pop().unwrap();
+                    let column_base = header.pop().unwrap();
+                    let selected_file = self.selected_file.clone();
+                    Command::perform(
+                        async move {
+                            println!("get kmeans");
+                            selected_file
+                                .get_kmeans(&column_base, &column_compare)
+                                .await
+                        },
+                        |k_means| match k_means {
+                            Ok(value) => FastFileFlowMessage::SetKMeans(value),
+                            Err(e) => FastFileFlowMessage::SetKMeansCompleted(e.to_string()),
+                        },
+                    )
+                } else {
+                    self.error_message =
+                        "Selecciona dos columnas del tipo Cuantitativo".to_string();
+                    self.enable_loading(false);
+                    Command::none()
+                }
+
+                // self.clicked_button = String::from("AI Button Clicked");
+                // Command::none()
             }
             FastFileFlowMessage::PreviewButtonClick() => {
                 self.clicked_button = String::from("Preview Button Clicked");
@@ -556,6 +584,19 @@ impl iced::Application for FastFileFlow {
                         column.width += offset;
                     }
                 });
+                Command::none()
+            }
+            FastFileFlowMessage::SetKMeans(k_means) => {
+                println!(
+                    "Centroide {}; Path: {}",
+                    k_means.centroid_details, k_means.result_image_path
+                );
+                self.enable_loading(false);
+                Command::none()
+            }
+            FastFileFlowMessage::SetKMeansCompleted(result) => {
+                println!("{}", result);
+                self.enable_loading(false);
                 Command::none()
             }
         }
