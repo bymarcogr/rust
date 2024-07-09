@@ -1,13 +1,19 @@
 use csv::WriterBuilder;
 use futures::stream::StreamExt;
-use std::collections::HashMap;
+use std::{collections::HashMap, fs::remove_file};
 use tokio::{fs::File, time::Instant};
 
-use crate::{dynamictable::simple_column::SimpleColumn, stored_file::StoredFile};
+use crate::{
+    dynamictable::{iced_column::IcedColumn, iced_row::IcedRow, simple_column::SimpleColumn},
+    stored_file::StoredFile,
+};
 
 pub struct Export {
     pub stored_file: StoredFile,
     pub simple_column: Vec<SimpleColumn>,
+    pub preview: (Vec<IcedColumn>, Vec<IcedRow>),
+    preview_enabled: bool,
+    max_preview_rows: usize,
 }
 
 impl Export {
@@ -15,31 +21,43 @@ impl Export {
         Self {
             simple_column,
             stored_file,
+            preview: (vec![], vec![]),
+            preview_enabled: bool::default(),
+            max_preview_rows: 70,
         }
     }
     pub fn default() -> Self {
         Self {
             simple_column: vec![],
             stored_file: StoredFile::default(),
+            preview: (vec![], vec![]),
+            preview_enabled: bool::default(),
+            max_preview_rows: 0,
         }
     }
 
     pub async fn save(&mut self) -> String {
+        self.preview_enabled = false;
         let save_path = self.stored_file.get_export_path();
 
-        match self.write_csv(save_path.clone()).await {
+        match self
+            .write_csv(save_path.clone(), self.stored_file.file_path.clone())
+            .await
+        {
             Ok(_) => save_path,
             Err(_) => "Error".to_string(),
         }
     }
 
-    async fn write_csv(&self, file_path: String) -> Result<(), std::io::Error> {
+    async fn write_csv(
+        &self,
+        save_path: String,
+        open_path: String,
+    ) -> Result<(Vec<String>, Vec<Vec<String>>), std::io::Error> {
         let start = Instant::now();
-        let mut wtr = WriterBuilder::new().from_path(file_path)?;
+        let mut wtr = WriterBuilder::new().from_path(save_path)?;
 
-        let mut rdr = csv_async::AsyncReader::from_reader(
-            File::open(&self.stored_file.file_path).await.unwrap(),
-        );
+        let mut rdr = csv_async::AsyncReader::from_reader(File::open(&open_path).await.unwrap());
 
         // Step 1
         let columns_ignore = self.get_ignore_column();
@@ -58,39 +76,54 @@ impl Export {
             .map(|s| s.header.to_string())
             .collect();
 
+        let mut counter = self.max_preview_rows;
+        let preview_enabled = self.preview_enabled;
+        let mut preview_rows: Vec<Vec<String>> = vec![];
+        let headers_clone = headers.clone();
+
         let handle_records = tokio::spawn(async move {
-            let _ = wtr.serialize(headers);
+            let _ = wtr.serialize(&headers_clone);
 
             let mut records = rdr.records();
+            let outer_loop_result: Result<(Vec<String>, Vec<Vec<String>>), std::io::Error> = 'outer: loop {
+                while let Some(record) = records.next().await {
+                    let record = record.unwrap();
 
-            while let Some(record) = records.next().await {
-                let record = record.unwrap();
+                    let mut values: Vec<(usize, String)> = record
+                        .iter()
+                        .enumerate()
+                        .map(|s| (s.0, s.1.to_string()))
+                        .collect();
 
-                let mut values: Vec<(usize, String)> = record
-                    .iter()
-                    .enumerate()
-                    .map(|s| (s.0, s.1.to_string()))
-                    .collect();
+                    if ignore_row_if_empty(&values, &row_ignore_if_empty) {
+                        continue;
+                    }
 
-                if ignore_row_if_empty(&values, &row_ignore_if_empty) {
-                    continue;
+                    if ignore_row_if_value(&values, &row_ignore_if_value) {
+                        continue;
+                    }
+
+                    values = remove_columns(&values, &columns_ignore);
+                    values = replace_do_trim(values, &replace_with_trim);
+                    values = replace_value_if_empty(values, &replace_if_empty);
+                    values = replace_value_with(values, &replace_with);
+                    values = replace_value_if_equals(values, &replace_if_value);
+
+                    let finals: Vec<String> = values.iter().map(|s| s.1.to_string()).collect();
+                    if preview_enabled {
+                        preview_rows.push(finals.clone());
+                        counter -= 1;
+                        if counter == 0 {
+                            break 'outer Ok((headers.clone(), preview_rows));
+                        }
+                    }
+
+                    let _ = wtr.serialize(&finals);
                 }
-
-                if ignore_row_if_value(&values, &row_ignore_if_value) {
-                    continue;
-                }
-
-                values = remove_columns(&values, &columns_ignore);
-                values = replace_do_trim(values, &replace_with_trim);
-                values = replace_value_if_empty(values, &replace_if_empty);
-                values = replace_value_with(values, &replace_with);
-                values = replace_value_if_equals(values, &replace_if_value);
-
-                let finals: Vec<String> = values.iter().map(|s| s.1.to_string()).collect();
-                let _ = wtr.serialize(finals);
-            }
-
-            wtr.flush()
+                _ = wtr.flush();
+                break Ok((headers, preview_rows));
+            };
+            outer_loop_result
         });
 
         let result = handle_records.await.unwrap();
@@ -176,6 +209,30 @@ impl Export {
                 )
             })
             .collect()
+    }
+
+    pub async fn get_preview(&mut self) -> (Vec<IcedColumn>, Vec<IcedRow>) {
+        self.preview_enabled = true;
+        let save_path = self.stored_file.get_export_path();
+        let (columns, rows) = self
+            .write_csv(save_path.clone(), self.stored_file.file_path.clone())
+            .await
+            .unwrap();
+
+        let _ = remove_file(save_path);
+
+        let iced_preview_columns: Vec<IcedColumn> = columns
+            .iter()
+            .map(|s| IcedColumn::new(s.to_string()))
+            .collect();
+
+        let iced_preview_rows: Vec<IcedRow> = rows
+            .into_iter()
+            .enumerate()
+            .map(|(i, val)| IcedRow::new(val, i))
+            .collect();
+
+        (iced_preview_columns, iced_preview_rows)
     }
 }
 

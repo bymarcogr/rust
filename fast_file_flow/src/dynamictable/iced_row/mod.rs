@@ -2,7 +2,7 @@
 pub struct IcedRow {
     pub values: Vec<String>,
     pub is_enabled: bool,
-    pub row_index: u32,
+    pub row_index: usize,
 }
 
 impl IcedRow {
@@ -13,7 +13,7 @@ impl IcedRow {
             row_index: 0,
         }
     }
-    pub fn new(values: Vec<String>, row: u32) -> Self {
+    pub fn new(values: Vec<String>, row: usize) -> Self {
         Self {
             is_enabled: true,
             values,

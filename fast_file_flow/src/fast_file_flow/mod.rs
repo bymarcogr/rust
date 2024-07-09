@@ -98,6 +98,7 @@ pub enum FastFileFlowMessage {
     Resized,
     SetKMeans(KMeansClustering),
     SetKMeansCompleted(String),
+    PreviewCompleted(Vec<IcedColumn>, Vec<IcedRow>),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -106,6 +107,7 @@ pub enum Page {
     Filter = 2,
     Process = 3,
     AI,
+    Preview,
 }
 
 impl FastFileFlow {
@@ -114,7 +116,6 @@ impl FastFileFlow {
         let panels = self.build_panels().padding([10.0, 0.0, 0.0, 0.0]);
         let action_menu = self.build_action_menu();
         let table = self.build_table();
-
         let loader = self.build_status();
 
         let content = column![header, panels, action_menu, clicked_button, table, loader];
@@ -524,17 +525,7 @@ impl FastFileFlow {
             .width(Length::Fill)
             .size(Pixels(PANEL_FONT_SIZE));
 
-        let loader = row![
-            selected_file,
-            horizontal_space(),
-            if self.running {
-                Linear::new(340.0, 15.0)
-                    .easing(&easing::EMPHASIZED_ACCELERATE)
-                    .cycle_duration(Duration::from_secs_f32(2_f32))
-            } else {
-                Linear::default()
-            }
-        ];
+        let loader = row![selected_file, horizontal_space(), self.build_linear()];
 
         loader
     }
@@ -548,16 +539,7 @@ impl FastFileFlow {
             TAB_SPACE,
             container_analysis,
             horizontal_space(),
-            column![
-                vertical_space(),
-                if self.running {
-                    Linear::new(340.0, 15.0)
-                        .easing(&easing::EMPHASIZED_ACCELERATE)
-                        .cycle_duration(Duration::from_secs_f32(2_f32))
-                } else {
-                    Linear::default()
-                }
-            ]
+            column![vertical_space(), self.build_linear()]
         ];
         let border = Border {
             color: Color::from_rgb(0.315, 0.315, 0.315).into(),
@@ -738,16 +720,7 @@ impl FastFileFlow {
             TAB_SPACE,
             container_analysis,
             horizontal_space(),
-            column![
-                vertical_space(),
-                if self.running {
-                    Linear::new(340.0, 15.0)
-                        .easing(&easing::EMPHASIZED_ACCELERATE)
-                        .cycle_duration(Duration::from_secs_f32(2_f32))
-                } else {
-                    Linear::default()
-                }
-            ]
+            column![vertical_space(), self.build_linear()]
         ];
         let border = Border {
             color: Color::from_rgb(0.315, 0.315, 0.315).into(),
@@ -899,16 +872,7 @@ impl FastFileFlow {
             TAB_SPACE,
             column![container_ai,],
             horizontal_space(),
-            column![
-                vertical_space(),
-                if self.running {
-                    Linear::new(340.0, 15.0)
-                        .easing(&easing::EMPHASIZED_ACCELERATE)
-                        .cycle_duration(Duration::from_secs_f32(2_f32))
-                } else {
-                    Linear::default()
-                }
-            ]
+            column![vertical_space(), self.build_linear()]
         ];
         let border = Border {
             color: Color::from_rgb(0.315, 0.315, 0.315).into(),
@@ -946,6 +910,60 @@ impl FastFileFlow {
         container_analysis
     }
 
+    fn show_preview_screen(&self) -> Element<'_, FastFileFlowMessage, Theme, iced::Renderer> {
+        let close_button =
+            Button::new(Text::new("Close")).on_press(FastFileFlowMessage::Router(Page::Main));
+
+        let preview_ai = self
+            .build_preview_panel()
+            .height(Length::Fill)
+            .width(Length::Fill);
+
+        let render = column![
+            row![preview_ai],
+            row![TAB_SPACE],
+            row![TAB_SPACE, horizontal_space(), close_button,],
+            self.build_linear()
+        ];
+        let border = Border {
+            color: Color::from_rgb(0.315, 0.315, 0.315).into(),
+            width: 1.0,
+            radius: 40.0.into(),
+            ..Default::default()
+        };
+
+        container(render)
+            .align_x(iced::alignment::Horizontal::Left)
+            .align_y(iced::alignment::Vertical::Top)
+            .padding(40.0)
+            .style(container::Appearance {
+                border,
+                ..Default::default()
+            })
+            .into()
+    }
+
+    fn build_preview_panel(&self) -> Container<FastFileFlowMessage, Theme, iced::Renderer> {
+        let panel_column_preview = column![
+            row![get_text("Preview", true)
+                .height(Length::Fixed(24.0))
+                .width(Length::Fixed(PANEL_WIDTH)),],
+            row![self.build_table()],
+            row![TAB_SPACE],
+        ];
+        let container_analysis = create_section_container_width(panel_column_preview, PANEL_WIDTH);
+        container_analysis
+    }
+
+    fn build_linear(&self) -> Linear<Theme> {
+        if self.running {
+            Linear::new(340.0, 15.0)
+                .easing(&easing::EMPHASIZED_ACCELERATE)
+                .cycle_duration(Duration::from_secs_f32(2_f32))
+        } else {
+            Linear::default()
+        }
+    }
     fn build_checkbox<F>(
         &self,
         index: usize,
@@ -1021,8 +1039,8 @@ impl FastFileFlow {
     fn router(&mut self, page: Page) {
         match page {
             Page::Main => {
-                //self.theme = Theme::Dark;
-                //self.is_primary_logo = false;
+                self.columns = self.selected_file.columns.headers.clone();
+                self.rows = self.selected_file.rows.sample.clone();
             }
             _ => {
                 //     self.page = Page::Filter;

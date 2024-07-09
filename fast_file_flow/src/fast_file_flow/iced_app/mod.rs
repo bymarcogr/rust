@@ -529,13 +529,22 @@ impl iced::Application for FastFileFlow {
                     self.enable_loading(false);
                     Command::none()
                 }
-
-                // self.clicked_button = String::from("AI Button Clicked");
-                // Command::none()
             }
             FastFileFlowMessage::PreviewButtonClick() => {
-                self.clicked_button = String::from("Preview Button Clicked");
-                Command::none()
+                if self.is_file_loaded() {
+                    let mut export_file =
+                        Export::new(self.selected_file.clone(), self.column_options.clone());
+                    Command::perform(
+                        async move { export_file.get_preview().await },
+                        |(preview_headers, preview_rows)| {
+                            FastFileFlowMessage::PreviewCompleted(preview_headers, preview_rows)
+                        },
+                    )
+                } else {
+                    self.set_file_not_found_error();
+                    self.enable_loading(false);
+                    Command::none()
+                }
             }
             FastFileFlowMessage::SaveButtonClick() => {
                 self.clicked_button = String::from("Save Button Clicked");
@@ -598,6 +607,12 @@ impl iced::Application for FastFileFlow {
                 self.enable_loading(false);
                 Command::none()
             }
+            FastFileFlowMessage::PreviewCompleted(headers, rows) => {
+                self.columns = headers;
+                self.rows = rows;
+                self.router(Page::Preview);
+                Command::none()
+            }
         }
     }
 
@@ -607,6 +622,7 @@ impl iced::Application for FastFileFlow {
             Page::Filter => self.show_filter_screen(),
             Page::Process => self.show_process_screen(),
             Page::AI => self.show_ai_screen(),
+            Page::Preview => self.show_preview_screen(),
         }
     }
 
