@@ -1,6 +1,7 @@
 use crate::ai::k_means::KMeansClustering;
 use crate::constants::english::*;
 use crate::constants::icons::*;
+use crate::constants::path::KMEANS_RESULT;
 use crate::constants::sizes::{
     FONT_NAME, PANEL_FONT_SIZE, PANEL_HEIGHT, PANEL_WIDTH, SEARCH_TEXTBOX_WIDTH,
 };
@@ -12,6 +13,7 @@ use crate::save_options::option_type::OptionType;
 use crate::stadistics::data_classification::DataClassification;
 use crate::stadistics::Stadistics;
 use crate::stored_file::StoredFile;
+use crate::util::get_full_directory;
 use crate::util::{get_logo, get_menu_button, get_text, get_text_size, wrap_tooltip};
 use iced::widget::{
     column, container, horizontal_space, responsive, row, scrollable, text_input, tooltip, Button,
@@ -24,6 +26,7 @@ use iced_widget::checkbox;
 use iced_widget::combo_box;
 use iced_widget::core::Element;
 use iced_widget::vertical_space;
+use iced_widget::Image;
 use linear::Linear;
 use num_format::{Locale, ToFormattedString};
 use std::time::Duration;
@@ -55,6 +58,7 @@ pub struct FastFileFlow {
 
     theme: Theme,
     search_value: String,
+    k_means_clustering: KMeansClustering,
 }
 
 #[derive(Debug, Clone)]
@@ -101,6 +105,7 @@ pub enum Page {
     Main = 1,
     Filter = 2,
     Process = 3,
+    AI,
 }
 
 impl FastFileFlow {
@@ -878,6 +883,67 @@ impl FastFileFlow {
             ],
         ];
         create_section_container_width(panel_dropdown, PANEL_WIDTH + 100.0)
+    }
+
+    fn show_ai_screen(&self) -> Element<'_, FastFileFlowMessage, Theme, iced::Renderer> {
+        let container_ai = self.build_ia_statistics().height(PANEL_HEIGHT + 50.0);
+        let path = get_full_directory();
+        let logo = KMEANS_RESULT;
+        let full_path = format!("{path}/{logo}");
+        let image = Image::new(full_path)
+            .width(Fixed(1024.0))
+            .height(Fixed(768.0));
+
+        let render = row![
+            image,
+            TAB_SPACE,
+            column![container_ai,],
+            horizontal_space(),
+            column![
+                vertical_space(),
+                if self.running {
+                    Linear::new(340.0, 15.0)
+                        .easing(&easing::EMPHASIZED_ACCELERATE)
+                        .cycle_duration(Duration::from_secs_f32(2_f32))
+                } else {
+                    Linear::default()
+                }
+            ]
+        ];
+        let border = Border {
+            color: Color::from_rgb(0.315, 0.315, 0.315).into(),
+            width: 1.0,
+            radius: 40.0.into(),
+            ..Default::default()
+        };
+
+        container(render)
+            .align_x(iced::alignment::Horizontal::Left)
+            .align_y(iced::alignment::Vertical::Top)
+            .padding(40.0)
+            .style(container::Appearance {
+                border,
+                ..Default::default()
+            })
+            .into()
+    }
+
+    fn build_ia_statistics(&self) -> Container<FastFileFlowMessage, Theme, iced::Renderer> {
+        let close_button =
+            Button::new(Text::new("Close")).on_press(FastFileFlowMessage::Router(Page::Main));
+        let panel_column_ai = column![
+            row![get_text("Cluster Center:", true)
+                .height(Length::Fixed(24.0))
+                .width(Length::Fixed(PANEL_WIDTH)),],
+            row![get_text(
+                self.k_means_clustering.centroid_details.clone(),
+                false
+            )],
+            row![TAB_SPACE],
+            row![TAB_SPACE, horizontal_space(), close_button]
+        ];
+        let container_analysis = create_section_container_width(panel_column_ai, PANEL_WIDTH);
+        container_analysis
     }
 
     fn build_checkbox<F>(

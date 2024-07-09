@@ -10,6 +10,8 @@ use linfa_clustering::KMeans;
 use ndarray::Array2;
 use plotters::prelude::*;
 
+use crate::constants::path::KMEANS_RESULT;
+
 #[derive(Debug, Clone)]
 pub struct KMeansClustering {
     pub centroid_details: String,
@@ -17,7 +19,7 @@ pub struct KMeansClustering {
 }
 
 impl KMeansClustering {
-    pub async fn default() -> Self {
+    pub fn default() -> Self {
         Self {
             centroid_details: String::default(),
             result_image_path: String::default(),
@@ -49,7 +51,7 @@ impl KMeansClustering {
         let dataset = DatasetBase::from(data);
         // Crear el modelo K-means
         let model = KMeans::params(n_clusters)
-            .max_n_iterations(100)
+            .max_n_iterations(500)
             .fit(&dataset)
             .expect("KMeans fitting failed");
 
@@ -60,9 +62,15 @@ impl KMeansClustering {
         let centroids = format!("Cluster centers:\n{:?}", model.centroids());
         println!("{}", centroids);
 
-        let path = r"\\src\\ai\kmeans_plot.png";
+        let path = KMEANS_RESULT;
+        let output_dir = std::path::Path::new("output");
+
+        // Crear el directorio si no existe
+        if !output_dir.exists() {
+            std::fs::create_dir_all(output_dir).expect("Failed to create output directory");
+        }
         // Visualización de los clusters
-        let root = BitMapBackend::new("kmeans_plot.png", (1024, 768)).into_drawing_area();
+        let root = BitMapBackend::new(path, (1024, 768)).into_drawing_area();
         root.fill(&WHITE).unwrap();
 
         let mut chart = ChartBuilder::on(&root)

@@ -1,4 +1,3 @@
-use crate::ai::k_means;
 use crate::ai::k_means::KMeansClustering;
 use crate::constants::english::*;
 use crate::correlation_analysis::CorrelationAnalysis;
@@ -51,6 +50,7 @@ impl iced::Application for FastFileFlow {
                 column_options: vec![],
                 column_option_selected: None,
                 column_options_state: combo_box::State::new(vec![]),
+                k_means_clustering: KMeansClustering::default(),
             },
             Command::none(),
         )
@@ -587,10 +587,9 @@ impl iced::Application for FastFileFlow {
                 Command::none()
             }
             FastFileFlowMessage::SetKMeans(k_means) => {
-                println!(
-                    "Centroide {}; Path: {}",
-                    k_means.centroid_details, k_means.result_image_path
-                );
+                self.k_means_clustering = k_means;
+                self.router(Page::AI);
+
                 self.enable_loading(false);
                 Command::none()
             }
@@ -607,6 +606,7 @@ impl iced::Application for FastFileFlow {
             Page::Main => self.show_main_screen(),
             Page::Filter => self.show_filter_screen(),
             Page::Process => self.show_process_screen(),
+            Page::AI => self.show_ai_screen(),
         }
     }
 
