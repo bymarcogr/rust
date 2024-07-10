@@ -12,7 +12,7 @@ pub const ERROR_GET_FOLDER: &str = "Failed to get current folder";
 pub const ERROR_QUANTITATIVE_COLUMNS: &str =
     "Two columns selected must be Quantitative type to start the analysis.";
 pub const ERROR_FILE_NOT_FOUNT: &str = "Select a CSV file to use this function";
-pub const ERROR_FILE_LOADING: &str = "An error occurs on file save process";
+pub const ERROR_FILE_SAVE: &str = "An error occurs on file save process";
 pub const ERROR_PROJECT_INVALID: &str = "Invalid project file";
 pub const ERROR_FILE_SINTAXIS: &str =
     "File sintaxis {}, it is not supported yet, please use a valid csv";
@@ -29,7 +29,7 @@ pub const ADD_ICON: &str = "Add";
 pub const SCRIPT_ICON: &str = "Script";
 pub const ANALYSIS_ICON: &str = "Analysis";
 pub const PIPELINE_ICON: &str = "Pipeline";
-pub const AI_ICON: &str = "Artifitial Intelligence";
+pub const AI_ICON: &str = "Artificial intelligence";
 pub const PREVIEW_ICON: &str = "Preview";
 pub const SAVE_ICON: &str = "Save Project";
 pub const EXPORT_ICON: &str = "Export File";

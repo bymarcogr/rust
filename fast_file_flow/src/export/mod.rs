@@ -4,7 +4,7 @@ use std::{collections::HashMap, fs::remove_file};
 use tokio::{fs::File, time::Instant};
 
 use crate::{
-    constants::english::ERROR_FILE_LOADING,
+    constants::english::ERROR_FILE_SAVE,
     dynamictable::{iced_column::IcedColumn, iced_row::IcedRow, simple_column::SimpleColumn},
     stored_file::StoredFile,
 };
@@ -37,16 +37,15 @@ impl Export {
         }
     }
 
-    pub async fn save_file(&mut self) -> String {
+    pub async fn save_file(&mut self, file_path: &str) -> String {
         self.preview_enabled = false;
-        let save_path = self.stored_file.get_export_path();
 
         match self
-            .write_csv(save_path.clone(), self.stored_file.file_path.clone())
+            .write_csv(file_path.to_string(), self.stored_file.file_path.clone())
             .await
         {
-            Ok(_) => save_path,
-            Err(_) => ERROR_FILE_LOADING.to_owned(),
+            Ok(_) => file_path.to_string(),
+            Err(_) => ERROR_FILE_SAVE.to_owned(),
         }
     }
 

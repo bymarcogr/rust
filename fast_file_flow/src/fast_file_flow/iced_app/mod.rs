@@ -54,7 +54,8 @@ impl iced::Application for FastFileFlow {
             }
 
             FastFileFlowMessage::UserButtonClick() => {
-                self.clicked_button = String::from("User Button Clicked");
+                self.router(Page::UserAboutIt);
+
                 Command::none()
             }
             FastFileFlowMessage::MenuButtonClick() => {
@@ -139,14 +140,16 @@ impl iced::Application for FastFileFlow {
                         self.columns = self.selected_file.columns.headers.clone();
                         self.column_options_state =
                             combo_box::State::new(self.column_options.clone());
+                        self.enable_loading(false);
                     }
                     Err(e) => {
+                        self.selected_file = StoredFile::default();
+                        self.file_loaded = String::default();
                         self.reset_state();
                         self.set_error(&e.to_string());
+                        self.enable_loading(false);
                     }
                 }
-
-                self.enable_loading(false);
                 Command::none()
             }
 
@@ -573,11 +576,26 @@ impl iced::Application for FastFileFlow {
             FastFileFlowMessage::ExportButtonClick() => {
                 self.enable_loading(true);
                 if self.is_file_loaded() {
-                    let mut export_file =
-                        Export::new(self.selected_file.clone(), self.column_options.clone());
-                    Command::perform(async move { export_file.save_file().await }, |saved_file| {
-                        FastFileFlowMessage::ExportCompletedEvent(saved_file)
-                    })
+                    if let Some(path) = FileDialog::new()
+                        .add_filter(
+                            english::DIALOG_LOAD_PROJECT_TITLE,
+                            &[DIALOG_PROJECT_EXTENSION],
+                        )
+                        .set_filename(format!("project.{}", DIALOG_PROJECT_EXTENSION).as_str())
+                        .show_save_single_file()
+                        .ok()
+                        .flatten()
+                    {
+                        let mut export_file =
+                            Export::new(self.selected_file.clone(), self.column_options.clone());
+                        Command::perform(
+                            async move { export_file.save_file(path.to_str().unwrap()).await },
+                            |saved_file| FastFileFlowMessage::ExportCompletedEvent(saved_file),
+                        )
+                    } else {
+                        self.enable_loading(false);
+                        Command::none()
+                    }
                 } else {
                     self.set_file_not_found_error();
                     self.enable_loading(false);
@@ -641,6 +659,7 @@ impl iced::Application for FastFileFlow {
             Page::Process => self.show_process_screen(),
             Page::AI => self.show_ai_screen(),
             Page::Preview => self.show_preview_screen(),
+            Page::UserAboutIt => self.show_user_screen(),
         }
     }
 

@@ -117,6 +117,7 @@ pub enum Page {
     Process = 3,
     AI,
     Preview,
+    UserAboutIt,
 }
 
 impl FastFileFlow {
@@ -302,7 +303,7 @@ impl FastFileFlow {
             tooltip::Position::Right,
         );
 
-        let text_input: TextInput<'_, FastFileFlowMessage> =
+        let _search_text_input: TextInput<'_, FastFileFlowMessage> =
             text_input(SEARCH_PLACEHOLDER, self.search_value.as_str())
                 .on_input(FastFileFlowMessage::TextBoxChange)
                 .on_submit(FastFileFlowMessage::SearchOnSubmit())
@@ -324,7 +325,7 @@ impl FastFileFlow {
         let header = row![
             image,
             horizontal_space(),
-            text_input,
+            //search_text_input,
             button_user,
             TAB_SPACE,
             button_menu
@@ -545,7 +546,7 @@ impl FastFileFlow {
                     Pixels(PANEL_FONT_SIZE)
                 )
             ],
-            row!["Graph", TAB_SPACE, "Valor"]
+            
         ];
         let container_correlation = create_section_container(panel_coefficient);
 
@@ -583,7 +584,8 @@ impl FastFileFlow {
             PROCESS_ICON,
         );
 
-        let button_add = get_menu_button(ADD, FastFileFlowMessage::AddButtonClick(), ADD_ICON);
+        // tbd
+        let _button_add = get_menu_button(ADD, FastFileFlowMessage::AddButtonClick(), ADD_ICON);
 
         // Disabled due to un supported library
         let _button_script = get_menu_button(
@@ -592,7 +594,8 @@ impl FastFileFlow {
             SCRIPT_ICON,
         );
 
-        let button_pipeline = get_menu_button(
+        // tbd
+        let _button_pipeline = get_menu_button(
             PIPELINE,
             FastFileFlowMessage::PipelineButtonClick(),
             PIPELINE_ICON,
@@ -632,12 +635,12 @@ impl FastFileFlow {
             TAB_SPACE,
             button_process,
             TAB_SPACE,
-            button_add,
-            TAB_SPACE,
+            // button_add,
+            // TAB_SPACE,
             // button_script,
             // TAB_SPACE,
-            button_pipeline,
-            TAB_SPACE,
+            // button_pipeline,
+            // TAB_SPACE,
             button_analysis,
             TAB_SPACE,
             button_ai,
@@ -863,7 +866,13 @@ impl FastFileFlow {
             ];
             create_section_container_width(panel_dropdown, PANEL_WIDTH + 100.0)
         } else {
-            create_section_container_width(column![row![TAB_SPACE]], PANEL_WIDTH + 100.0)
+            let panel_dropdown = column![
+                row![combo_box],
+                row![TAB_SPACE, horizontal_space()],
+               
+                row![TAB_SPACE, horizontal_space(), close_button],
+            ];
+            create_section_container_width(panel_dropdown, PANEL_WIDTH + 100.0)
         }
     }
 
@@ -901,7 +910,8 @@ impl FastFileFlow {
             Button::new(Text::new(BUTTON_CLOSE)).on_press(FastFileFlowMessage::Router(Page::Main));
 
         let combo_box = self.build_header_combo_box();
-        if self.column_option_selected == Option::None {
+        
+        if self.column_option_selected != Option::None {
             let index = self
                 .column_option_selected
                 .clone()
@@ -1015,7 +1025,13 @@ impl FastFileFlow {
             ];
             create_section_container_width(panel_dropdown, PANEL_WIDTH + 100.0)
         } else {
-            create_section_container_width(column![row![TAB_SPACE]], PANEL_WIDTH + 100.0)
+            let panel_dropdown = column![
+                row![combo_box],
+                row![TAB_SPACE, horizontal_space()],
+                row![TAB_SPACE, horizontal_space()],
+                row![TAB_SPACE, horizontal_space(), close_button],
+            ];
+            create_section_container_width(panel_dropdown, PANEL_WIDTH + 100.0)
         }
     }
 
@@ -1076,16 +1092,17 @@ impl FastFileFlow {
         let close_button =
             Button::new(Text::new(BUTTON_CLOSE)).on_press(FastFileFlowMessage::Router(Page::Main));
 
-        let preview_ai = self
+        let panel_preview = self
             .build_preview_panel()
             .height(Length::Fill)
             .width(Length::Fill);
 
         let render = column![
-            row![preview_ai],
+            row![panel_preview],
             row![TAB_SPACE],
             row![TAB_SPACE, horizontal_space(), close_button,],
-            self.build_linear()
+            row![TAB_SPACE],
+            row![TAB_SPACE, horizontal_space(), self.build_linear(),]
         ];
         let border = Border {
             color: Color::from_rgb(0.315, 0.315, 0.315).into(),
@@ -1117,6 +1134,54 @@ impl FastFileFlow {
         container_analysis
     }
 
+    fn show_user_screen(&self) -> Element<'_, FastFileFlowMessage, Theme, iced::Renderer> {
+        let container_user = self.build_user_panel().height(PANEL_HEIGHT + 100.0);
+
+        let render = column![
+            row![container_user, TAB_SPACE, horizontal_space(),],
+            row![TAB_SPACE],
+            row![TAB_SPACE, horizontal_space(), self.build_linear(),],
+            row![TAB_SPACE],
+        ];
+        let border = Border {
+            color: Color::from_rgb(0.315, 0.315, 0.315).into(),
+            width: 1.0,
+            radius: 40.0.into(),
+            ..Default::default()
+        };
+
+        container(render)
+            .align_x(iced::alignment::Horizontal::Left)
+            .align_y(iced::alignment::Vertical::Top)
+            .padding(40.0)
+            .style(container::Appearance {
+                border,
+                ..Default::default()
+            })
+            .into()
+    }
+
+    fn build_user_panel(&self) -> Container<FastFileFlowMessage, Theme, iced::Renderer> {
+        let close_button =
+            Button::new(Text::new(BUTTON_CLOSE)).on_press(FastFileFlowMessage::Router(Page::Main));
+
+        let panel_user = column![
+            row![TAB_SPACE, horizontal_space()],
+            row![get_text("About: Fast FIle Flow", true)],
+            row![TAB_SPACE, horizontal_space()],
+            row![get_text_size(
+                " Desarrollada por el alumno Marco Antonio Guzman Rodriguez para UNIR como parte de su Trabajo de Fin de Master titulado 'Big Data and Data Visualization'
+Mexico 2024",
+                true,
+                Pixels(PANEL_FONT_SIZE)
+            )],
+            row![TAB_SPACE, horizontal_space()],
+            row![TAB_SPACE, vertical_space()],            
+            row![TAB_SPACE, horizontal_space(), close_button],
+        ];
+        create_section_container_width(panel_user, PANEL_WIDTH + 100.0)
+    }
+
     fn build_linear(&self) -> Linear<Theme> {
         if self.running {
             Linear::new(340.0, 15.0)
@@ -1126,6 +1191,7 @@ impl FastFileFlow {
             Linear::default()
         }
     }
+    
     fn build_checkbox<F>(
         &self,
         index: usize,

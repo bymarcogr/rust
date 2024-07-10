@@ -198,7 +198,7 @@ impl StoredFile {
         let records_vec = handle_records.await.unwrap();
         let duration = start.elapsed();
         println!(
-            "Rows {} Execution time: {:?}",
+            "Rows {:?} Execution time: {:?}",
             counter,
             duration.as_secs_f64()
         );
