@@ -1,3 +1,7 @@
+use crate::constants::english::{
+    DATA_CLASSIFICATION_QUALITATIVE, DATA_CLASSIFICATION_QUANTITATIVE, UNKNOWN_LABEL,
+};
+
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub enum DataClassification {
     Unknown = 0,
@@ -8,9 +12,9 @@ pub enum DataClassification {
 impl DataClassification {
     pub fn to_string(&self) -> &str {
         match self {
-            DataClassification::Qualitative => "Qualitative",
-            DataClassification::Quantitative => "Quantitative",
-            DataClassification::Unknown => "Unknown",
+            DataClassification::Qualitative => DATA_CLASSIFICATION_QUALITATIVE,
+            DataClassification::Quantitative => DATA_CLASSIFICATION_QUANTITATIVE,
+            DataClassification::Unknown => UNKNOWN_LABEL,
         }
     }
 
@@ -20,8 +24,8 @@ impl DataClassification {
 
     pub fn from_string(unwrap: &str) -> DataClassification {
         match unwrap {
-            "Qualitative" => DataClassification::Qualitative,
-            "Quantitative" => DataClassification::Quantitative,
+            DATA_CLASSIFICATION_QUALITATIVE => DataClassification::Qualitative,
+            DATA_CLASSIFICATION_QUANTITATIVE => DataClassification::Quantitative,
             _ => DataClassification::Unknown,
         }
     }

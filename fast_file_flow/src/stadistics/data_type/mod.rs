@@ -1,5 +1,7 @@
 use core::mem::discriminant as tag;
 
+use crate::constants::english::UNKNOWN_LABEL;
+
 #[derive(Debug, Eq, Hash, Clone)]
 pub enum DataType {
     Integer,
@@ -18,7 +20,7 @@ impl DataType {
             DataType::Integer => "Integer",
             DataType::Float => "Float",
             DataType::Text => "Text",
-            DataType::Unknown => "Unknown",
+            DataType::Unknown => UNKNOWN_LABEL,
             DataType::Date => "Date",
             DataType::Time => "Time",
             DataType::DateTime => "DateTime",

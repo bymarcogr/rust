@@ -4,6 +4,7 @@ use std::{collections::HashMap, fs::remove_file};
 use tokio::{fs::File, time::Instant};
 
 use crate::{
+    constants::english::ERROR_FILE_LOADING,
     dynamictable::{iced_column::IcedColumn, iced_row::IcedRow, simple_column::SimpleColumn},
     stored_file::StoredFile,
 };
@@ -36,7 +37,7 @@ impl Export {
         }
     }
 
-    pub async fn save(&mut self) -> String {
+    pub async fn save_file(&mut self) -> String {
         self.preview_enabled = false;
         let save_path = self.stored_file.get_export_path();
 
@@ -45,7 +46,7 @@ impl Export {
             .await
         {
             Ok(_) => save_path,
-            Err(_) => "Error".to_string(),
+            Err(_) => ERROR_FILE_LOADING.to_owned(),
         }
     }
 
@@ -128,7 +129,7 @@ impl Export {
 
         let result = handle_records.await.unwrap();
         let duration = start.elapsed();
-        println!("Exported Execution time: {:?}", duration.as_secs_f64());
+        println!("Exported execution time: {:?}", duration.as_secs_f64());
         result
     }
 

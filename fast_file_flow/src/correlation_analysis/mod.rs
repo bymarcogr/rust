@@ -1,5 +1,4 @@
 use std::time::Instant;
-
 use tokio::join;
 
 #[derive(Debug, Clone)]
@@ -21,8 +20,6 @@ impl CorrelationAnalysis {
     pub async fn new(column_base: &Vec<f64>, column_compare: &Vec<f64>) -> Self {
         let start = Instant::now();
 
-        // transformacion de columna
-
         let (spearman, pearson, cov) = join!(
             Self::spearman_correlation(column_base, column_compare),
             Self::pearson_correlation(column_base, column_compare),
@@ -31,7 +28,7 @@ impl CorrelationAnalysis {
         let duration = start.elapsed();
 
         println!(
-            "CorrelationAnalysis Execution time: {:?}",
+            "Correlation Analysis Execution time: {:?}",
             duration.as_secs_f64()
         );
 
@@ -63,8 +60,8 @@ impl CorrelationAnalysis {
             let diff_x = column_base[i] - mean_x;
             let diff_y = column_compare[i] - mean_y;
             numerator += diff_x * diff_y;
-            denominator_x += diff_x * diff_x; // Corregido de diff_x * diff_y a diff_x * diff_x
-            denominator_y += diff_y * diff_y; // Corregido de diff_x * diff_y a diff_y * diff_y
+            denominator_x += diff_x * diff_x;
+            denominator_y += diff_y * diff_y;
         }
 
         if denominator_x == 0.0 || denominator_y == 0.0 {

@@ -1,5 +1,9 @@
 use core::mem::discriminant as tag;
 
+use crate::constants::english::{
+    DIALOG_FILE_EXTENSION_CSV, DIALOG_FILE_EXTENSION_JSON, UNKNOWN_LABEL,
+};
+
 #[derive(Debug, Clone)]
 pub enum FileType {
     CSV,
@@ -16,16 +20,16 @@ impl Default for FileType {
 impl FileType {
     pub fn to_string(&self) -> &str {
         match self {
-            FileType::CSV => "CSV",
-            FileType::JSON => "JSON",
-            FileType::Unknown => "Unknown",
+            FileType::CSV => DIALOG_FILE_EXTENSION_CSV,
+            FileType::JSON => DIALOG_FILE_EXTENSION_JSON,
+            FileType::Unknown => UNKNOWN_LABEL,
         }
     }
 
     pub fn from_string(unwrap: &str) -> FileType {
         match unwrap {
-            "CSV" => FileType::CSV,
-            "JSON" => FileType::JSON,
+            DIALOG_FILE_EXTENSION_CSV => FileType::CSV,
+            DIALOG_FILE_EXTENSION_JSON => FileType::JSON,
             _ => FileType::Unknown, // Maneja todos los demás casos
         }
     }

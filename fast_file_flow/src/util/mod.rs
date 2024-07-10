@@ -98,7 +98,6 @@ pub fn get_menu_button_by_text(
 ) -> Element<'static, FastFileFlowMessage> {
     wrap_tooltip(
         button(text(label))
-            //.width(MENU_BUTTON_WIDTH)
             .height(MENU_BUTTON_HEIGHT)
             .on_press(on_press_event)
             .into(),
@@ -106,20 +105,6 @@ pub fn get_menu_button_by_text(
     )
     .into()
 }
-
-// pub fn get_text(input: &str, is_bold: bool) -> Text {
-//     text(input)
-//         .size(14)
-//         .font(Font {
-//             weight: if is_bold {
-//                 Weight::Bold
-//             } else {
-//                 Weight::Normal
-//             },
-//             ..Default::default()
-//         })
-//         .width(Length::Fill)
-// }
 
 pub fn get_text<T: Into<String>>(input: T, is_bold: bool) -> Text<'static> {
     let input_string: String = input.into();

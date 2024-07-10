@@ -1,3 +1,4 @@
+use crate::constants::english;
 use crate::constants::english::*;
 use crate::constants::path::CSV;
 use crate::constants::path::FFFLOW;
@@ -39,7 +40,7 @@ impl iced::Application for FastFileFlow {
 
     // Actualizaciones basadas en los mensajes aquí
     fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
-        self.error_message = String::from("");
+        self.notification_message = String::from("");
 
         match message {
             FastFileFlowMessage::TextBoxChange(search_value) => {
@@ -73,23 +74,20 @@ impl iced::Application for FastFileFlow {
 
                 if !path.is_empty() {
                     let extension = StoredFile::get_file_extension(&path);
-                    println!("{}", extension);
 
                     if extension == CSV {
-                        println!("Csv files");
                         self.file_loaded = path.clone();
                         Command::perform(StoredFile::new(path.clone()), |stored_file| {
                             FastFileFlowMessage::SetSelectedFile(stored_file)
                         })
                     } else if extension == FFFLOW {
-                        println!("HEllo");
                         match self.load_from_file(path.as_str()) {
                             Ok(_) => Command::perform(async move {}, |_| {
                                 FastFileFlowMessage::SetLoadedProject()
                             }),
                             Err(_) => {
                                 self.enable_loading(false);
-                                self.set_error("Invalid project file");
+                                self.set_error(&ERROR_PROJECT_INVALID.to_owned());
                                 self.reset_state();
                                 Command::none()
                             }
@@ -113,8 +111,8 @@ impl iced::Application for FastFileFlow {
 
             FastFileFlowMessage::SetSelectedFile(selected_file) => {
                 if selected_file.sintaxis.clone() != crate::stored_file::file_type::FileType::CSV {
-                    self.error_message = format!(
-                        "Invalid sintexis {} in the file, it is non compatible with the ap, please use a valid csv",
+                    self.notification_message = format!(
+                        "File sintaxis {}, it is not supported yet, please use a valid csv",
                         &selected_file.sintaxis.to_string()
                     )
                     .to_string();
@@ -132,13 +130,21 @@ impl iced::Application for FastFileFlow {
             FastFileFlowMessage::SetLoadedProject() => {
                 self.selected_file.file_name = StoredFile::get_file_name(&self.file_loaded);
                 let future = self.selected_file.reload();
-                futures::executor::block_on(future);
 
-                self.reset_state();
+                match futures::executor::block_on(future) {
+                    Ok(_) => {
+                        self.reset_state();
 
-                self.rows = self.selected_file.rows.sample.clone();
-                self.columns = self.selected_file.columns.headers.clone();
-                self.column_options_state = combo_box::State::new(self.column_options.clone());
+                        self.rows = self.selected_file.rows.sample.clone();
+                        self.columns = self.selected_file.columns.headers.clone();
+                        self.column_options_state =
+                            combo_box::State::new(self.column_options.clone());
+                    }
+                    Err(e) => {
+                        self.reset_state();
+                        self.set_error(&e.to_string());
+                    }
+                }
 
                 self.enable_loading(false);
                 Command::none()
@@ -246,7 +252,6 @@ impl iced::Application for FastFileFlow {
             }
             FastFileFlowMessage::AnalysisButtonClick() => {
                 if self.header_checked.len() == 2_usize {
-                    println!("Inicia Analisis");
                     self.enable_loading(true);
 
                     let mut header = self.header_checked.clone();
@@ -255,7 +260,6 @@ impl iced::Application for FastFileFlow {
                     let selected_file = self.selected_file.clone();
                     Command::perform(
                         async move {
-                            println!("get_correlation");
                             selected_file
                                 .get_correlation(&column_base.clone(), &column_compare.clone())
                                 .await
@@ -266,8 +270,7 @@ impl iced::Application for FastFileFlow {
                         },
                     )
                 } else {
-                    self.error_message =
-                        "Selecciona dos columnas del tipo Cuantitativo".to_string();
+                    self.notification_message = ERROR_QUANTITATIVE_COLUMNS.to_string();
                     self.enable_loading(false);
                     Command::none()
                 }
@@ -275,7 +278,7 @@ impl iced::Application for FastFileFlow {
 
             FastFileFlowMessage::AnalysisCompleted(error) => {
                 if !&error.is_empty() {
-                    self.error_message = error;
+                    self.notification_message = error;
                 }
                 self.enable_loading(false);
                 Command::none()
@@ -288,15 +291,7 @@ impl iced::Application for FastFileFlow {
                     Command::none()
                 }
             }
-            FastFileFlowMessage::ColumnOptionSelectedClosed() => {
-                if let Some(column) = &self.column_option_selected {
-                    println!("No hay Header {}", column.header);
-                } else {
-                    println!("No hay valor");
-                }
-
-                Command::none()
-            }
+            FastFileFlowMessage::ColumnOptionSelectedClosed() => Command::none(),
             FastFileFlowMessage::FilterEvent(index, checked, option_type) => {
                 if self.column_option_selected != None {
                     match option_type {
@@ -524,7 +519,6 @@ impl iced::Application for FastFileFlow {
                     let selected_file = self.selected_file.clone();
                     Command::perform(
                         async move {
-                            println!("get kmeans");
                             selected_file
                                 .get_kmeans(&column_base, &column_compare)
                                 .await
@@ -535,8 +529,7 @@ impl iced::Application for FastFileFlow {
                         },
                     )
                 } else {
-                    self.error_message =
-                        "Selecciona dos columnas del tipo Cuantitativo".to_string();
+                    self.notification_message = ERROR_QUANTITATIVE_COLUMNS.to_string();
                     self.enable_loading(false);
                     Command::none()
                 }
@@ -560,8 +553,11 @@ impl iced::Application for FastFileFlow {
             FastFileFlowMessage::SaveButtonClick() => {
                 if self.is_file_loaded() {
                     if let Some(path) = FileDialog::new()
-                        .add_filter("Fast File Flow Project", &["ffflow"])
-                        .set_filename("project.ffflow")
+                        .add_filter(
+                            english::DIALOG_LOAD_PROJECT_TITLE,
+                            &[DIALOG_PROJECT_EXTENSION],
+                        )
+                        .set_filename(format!("project.{}", DIALOG_PROJECT_EXTENSION).as_str())
                         .show_save_single_file()
                         .ok()
                         .flatten()
@@ -577,10 +573,9 @@ impl iced::Application for FastFileFlow {
             FastFileFlowMessage::ExportButtonClick() => {
                 self.enable_loading(true);
                 if self.is_file_loaded() {
-                    println!("Inicia Export");
                     let mut export_file =
                         Export::new(self.selected_file.clone(), self.column_options.clone());
-                    Command::perform(async move { export_file.save().await }, |saved_file| {
+                    Command::perform(async move { export_file.save_file().await }, |saved_file| {
                         FastFileFlowMessage::ExportCompletedEvent(saved_file)
                     })
                 } else {
@@ -590,9 +585,8 @@ impl iced::Application for FastFileFlow {
                 }
             }
             FastFileFlowMessage::ExportCompletedEvent(file_saved) => {
-                println!("{file_saved}");
                 self.enable_loading(false);
-                self.error_message = format!("File Saved: {file_saved}");
+                self.notification_message = format!("File Saved: {file_saved}");
                 Command::none()
             }
             FastFileFlowMessage::SearchOnSubmit() => {
@@ -664,10 +658,7 @@ impl iced::Application for FastFileFlow {
                 }
                 (FastFileFlowMessage::Tick(new_progress), new_progress)
             })
-
-            // todo() -> Agregar lectura de estado global de la aplicacion
         } else {
-            println!("exit");
             Subscription::none()
         }
     }

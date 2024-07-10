@@ -18,8 +18,11 @@ use futures::stream::StreamExt;
 use rayon::prelude::*;
 use row_stored::RowStored;
 use serde_json::Value;
-use std::time::{SystemTime, UNIX_EPOCH};
 use std::{fs::metadata, io::Cursor, path::Path};
+use std::{
+    io::Error,
+    time::{SystemTime, UNIX_EPOCH},
+};
 use tokio::{
     fs::File,
     io::{AsyncBufReadExt, AsyncReadExt, BufReader},
@@ -74,16 +77,25 @@ impl StoredFile {
                 encoding: Self::get_encoding(&file_path).await,
                 size: Self::get_size_kb(&file_path),
                 format: format,
-                rows: Self::get_rows(&file_path).await,
-                columns: Self::get_columns(&file_path).await,
+                rows: Self::get_rows(&file_path).await.unwrap(),
+                columns: Self::get_columns(&file_path).await.unwrap(),
                 sintaxis: sintaxis,
             }
         }
     }
 
-    pub async fn reload(&mut self) {
-        self.rows = StoredFile::get_rows(&self.file_path.to_string()).await;
-        self.columns = StoredFile::get_columns(&self.file_path.to_string()).await;
+    pub async fn reload(&mut self) -> Result<(), Error> {
+        self.rows = match StoredFile::get_rows(&self.file_path.to_string()).await {
+            Ok(it) => it,
+            Err(err) => return Err(err),
+        };
+
+        self.columns = match StoredFile::get_columns(&self.file_path.to_string()).await {
+            Ok(it) => it,
+            Err(err) => return Err(err),
+        };
+
+        Ok(())
     }
 
     pub fn get_simple_columns(&self) -> Vec<SimpleColumn> {
@@ -133,9 +145,9 @@ impl StoredFile {
         file_extension.to_uppercase().to_owned()
     }
 
-    pub async fn get_columns(file_path: &str) -> ColumnStored {
-        let mut rdr = csv_async::AsyncReader::from_reader(File::open(file_path).await.unwrap());
-        let counter = rdr.headers().await.unwrap().into_iter().count() as u64;
+    pub async fn get_columns(file_path: &str) -> Result<ColumnStored, Error> {
+        let mut rdr = csv_async::AsyncReader::from_reader(File::open(file_path).await?);
+        let counter = rdr.headers().await?.into_iter().count() as u64;
         let headers_vec: Vec<IcedColumn> = rdr
             .headers()
             .await
@@ -144,16 +156,21 @@ impl StoredFile {
             .iter()
             .map(|s| IcedColumn::new(s.to_string()))
             .collect();
-
-        ColumnStored::new(counter, headers_vec.clone())
+        Ok(ColumnStored::new(counter, headers_vec.clone()))
     }
 
     #[warn(unused_assignments)]
-    pub async fn get_rows(file_path: &str) -> RowStored {
+    pub async fn get_rows(file_path: &str) -> Result<RowStored, Error> {
         let start = Instant::now();
-        let mut rdr = csv_async::AsyncReader::from_reader(File::open(file_path).await.unwrap());
-        let mut rdr_count =
-            csv_async::AsyncReader::from_reader(File::open(file_path).await.unwrap());
+
+        let file = match File::open(file_path).await {
+            Ok(it) => it,
+            Err(err) => return Err(err),
+        };
+        let file_count = File::open(file_path).await.unwrap();
+
+        let mut rdr = csv_async::AsyncReader::from_reader(file);
+        let mut rdr_count = csv_async::AsyncReader::from_reader(file_count);
 
         let handle_count = tokio::spawn(async move {
             let count = rdr_count.records().count().await;
@@ -185,7 +202,7 @@ impl StoredFile {
             counter,
             duration.as_secs_f64()
         );
-        RowStored::new(counter, records_vec)
+        Ok(RowStored::new(counter, records_vec))
     }
 
     pub fn size_mb_as_str(&self) -> String {
@@ -265,12 +282,9 @@ impl StoredFile {
         column_base: &SimpleColumn,
         column_compare: &SimpleColumn,
     ) -> Result<CorrelationAnalysis, &'static str> {
-        println!("Enter");
-
         if column_base.classification == DataClassification::Quantitative
             && column_compare.classification == DataClassification::Quantitative
         {
-            println!("Inicia get_correlation");
             let base = Self::convert_to_f64(&self.get_full_column(&column_base.index).await);
             let compare = Self::convert_to_f64(&self.get_full_column(&column_compare.index).await);
             Ok(CorrelationAnalysis::new(&base, &compare).await)
@@ -311,7 +325,6 @@ impl StoredFile {
         if column_base.classification == DataClassification::Quantitative
             && column_compare.classification == DataClassification::Quantitative
         {
-            println!("Inicia get_correlation");
             let base = Self::convert_to_f64(&self.get_full_column(&column_base.index).await);
             let compare = Self::convert_to_f64(&self.get_full_column(&column_compare.index).await);
             Ok(KMeansClustering::new(base, compare, 3).await)

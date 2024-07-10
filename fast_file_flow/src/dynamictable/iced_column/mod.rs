@@ -11,7 +11,7 @@ pub struct IcedColumn {
 
 impl IcedColumn {
     pub fn default() -> Self {
-        IcedColumn::new("".to_string())
+        IcedColumn::new(String::from(""))
     }
     pub fn new(column_header: String) -> Self {
         let width = 100.0;
