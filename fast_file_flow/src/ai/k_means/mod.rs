@@ -5,11 +5,10 @@ extern crate ndarray_rand;
 extern crate plotters;
 
 use linfa::traits::{Fit, Predict};
-use linfa::DatasetBase;
 use linfa_clustering::KMeans;
-use ndarray::Array2;
 use plotters::prelude::*;
 
+use crate::ai::shared::Shared;
 use crate::constants::path::KMEANS_IMAGE_RESULT;
 
 #[derive(Debug, Clone)]
@@ -40,17 +39,7 @@ impl KMeansClustering {
         n_clusters: usize,
         iteraciones: u64,
     ) -> (String, String) {
-        let data: Vec<Vec<f64>> = vec![column1, column2];
-
-        let data: Vec<Vec<f64>> = (0..data[0].len())
-            .map(|i| data.iter().map(|col| col[i]).collect())
-            .collect();
-        let data: Array2<f64> = Array2::from_shape_vec(
-            (data.len(), data[0].len()),
-            data.into_iter().flatten().collect(),
-        )
-        .unwrap();
-        let dataset = DatasetBase::from(data);
+        let (dataset, x, y) = Shared::get_dataset_info(column1, column2);
         // Crear el modelo K-means
         let model = KMeans::params(n_clusters)
             .max_n_iterations(iteraciones)
@@ -65,12 +54,6 @@ impl KMeansClustering {
         println!("{}", centroids);
 
         let path = KMEANS_IMAGE_RESULT;
-        let output_dir = std::path::Path::new("output");
-
-        // Crear el directorio si no existe
-        if !output_dir.exists() {
-            std::fs::create_dir_all(output_dir).expect("Failed to create output directory");
-        }
         // Visualización de los clusters
         let root = BitMapBackend::new(path, (1024, 768)).into_drawing_area();
         root.fill(&WHITE).unwrap();
@@ -80,7 +63,7 @@ impl KMeansClustering {
             .margin(10)
             .x_label_area_size(30)
             .y_label_area_size(30)
-            .build_cartesian_2d(0.0..10.0, 0.0..10.0)
+            .build_cartesian_2d(x.min..x.max, y.min..y.max)
             .unwrap();
 
         chart.configure_mesh().draw().unwrap();

@@ -3,13 +3,12 @@ extern crate linfa_clustering;
 extern crate ndarray;
 
 use crate::ai::dbscan::linfa::dataset::Labels;
+use crate::ai::shared::Shared;
 use crate::constants::path::DBSCAN_IMAGE_RESULT;
-use linfa::dataset::{DatasetBase, Records};
 use linfa::traits::Transformer;
 use linfa_clustering::Dbscan;
 use linfa_nn::distance::L2Dist;
 use linfa_nn::CommonNearestNeighbour;
-use ndarray::Array2;
 use plotters::prelude::*;
 use string_builder::Builder;
 
@@ -23,27 +22,7 @@ impl DensityBaseClustering {
         eps: f64,
         min_points: usize,
     ) -> Result<String, Box<dyn std::error::Error>> {
-        let data: Vec<Vec<f64>> = vec![column1, column2];
-
-        let data: Vec<Vec<f64>> = (0..data[0].len())
-            .map(|i| data.iter().map(|col| col[i]).collect())
-            .collect();
-
-        let data: Array2<f64> = Array2::from_shape_vec(
-            (data.len(), data[0].len()),
-            data.into_iter().flatten().collect(),
-        )
-        .unwrap();
-
-        let dataset = DatasetBase::from(data);
-        // default implementation
-        // let clusters = Dbscan::params(min_points)
-
-        println!(
-            "Clustering #{} data points grouped in 4 clusters of {} points each",
-            dataset.nsamples(),
-            min_points
-        );
+        let (dataset, x, y) = Shared::get_dataset_info(column1, column2);
 
         println!("Start Clustering");
         let assigned_clusters =
@@ -66,13 +45,7 @@ impl DensityBaseClustering {
         }
 
         let path = DBSCAN_IMAGE_RESULT;
-        let output_dir = std::path::Path::new("output");
 
-        // Crear el directorio si no existe
-        if !output_dir.exists() {
-            std::fs::create_dir_all(output_dir).expect(DBSCAN_IMAGE_RESULT);
-        }
-        // Visualización de los clusters
         let root = BitMapBackend::new(path, (1024, 768)).into_drawing_area();
         root.fill(&WHITE)?;
         let mut chart = ChartBuilder::on(&root)
@@ -80,7 +53,7 @@ impl DensityBaseClustering {
             .margin(10)
             .x_label_area_size(30)
             .y_label_area_size(30)
-            .build_cartesian_2d(0.0..10.0, 0.0..10.0)?;
+            .build_cartesian_2d(x.min..x.max, y.min..y.max)?;
 
         chart.configure_mesh().draw()?;
 
