@@ -3,5 +3,6 @@ pub const LOGO_PRIMARY_PATH: &str = "\\src\\resources\\images\\logo-black.png";
 pub const LOGO_SECONDARY_PATH: &str = "\\src\\resources\\images\\logo-white.png";
 pub const KMEANS_IMAGE_RESULT: &str = "output/kmeans_plot.png";
 pub const PCA_IMAGE_RESULT: &str = "output/pca_plot.png";
+pub const DBSCAN_IMAGE_RESULT: &str = "output/dbscan_plot.png";
 pub const CSV: &str = "CSV";
 pub const FFFLOW: &str = "FFFLOW";

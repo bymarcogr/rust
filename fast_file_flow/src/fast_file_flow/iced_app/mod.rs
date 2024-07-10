@@ -533,11 +533,21 @@ impl iced::Application for FastFileFlow {
                     //     },
                     // )
 
+                    // Command::perform(
+                    //     async move {
+                    //         selected_file
+                    //             .get_pca_analysis(&column_base, &column_compare, 2)
+                    //             .await
+                    //     },
+                    //     |result| match result {
+                    //         Ok(_) => FastFileFlowMessage::AICompleted(),
+                    //         Err(e) => FastFileFlowMessage::SetKMeansCompleted(e.to_string()),
+                    //     },
+                    // )
                     Command::perform(
                         async move {
                             selected_file
-                                // .get_kmeans(&column_base, &column_compare,10,500)
-                                .get_pca_analysis(&column_base, &column_compare, 2)
+                                .get_dbscan_analysis(&column_base, &column_compare, 1.0, 4)
                                 .await
                         },
                         |result| match result {

@@ -1,6 +1,7 @@
 use crate::ai::k_means::KMeansClustering;
 use crate::constants::english::*;
 use crate::constants::icons::*;
+use crate::constants::path::DBSCAN_IMAGE_RESULT;
 use crate::constants::path::KMEANS_IMAGE_RESULT;
 use crate::constants::path::PCA_IMAGE_RESULT;
 use crate::constants::sizes::{
@@ -1041,7 +1042,7 @@ impl FastFileFlow {
     fn show_ai_screen(&self) -> Element<'_, FastFileFlowMessage, Theme, iced::Renderer> {
         let container_ai = self.build_ia_statistics().height(PANEL_HEIGHT + 50.0);
         let path = get_full_directory();
-        let logo = PCA_IMAGE_RESULT;// KMEANS_IMAGE_RESULT;
+        let logo = DBSCAN_IMAGE_RESULT;//PCA_IMAGE_RESULT;// KMEANS_IMAGE_RESULT;
         let full_path = format!("{path}/{logo}");
         let image = Image::new(full_path)
             .width(Fixed(1024.0))

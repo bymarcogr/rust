@@ -68,23 +68,4 @@ impl PrincipalComponentsAnalisys {
 
         Ok(())
     }
-
-    // fn main() {
-    //     // Ruta al archivo CSV y las columnas a analizar
-    //     let file_path = "data.csv";
-    //     let columns_to_analyze = vec![0, 1, 2]; // Índices de las columnas a analizar
-
-    //     // Leer el CSV y convertirlo en Array2
-    //     match read_csv_to_array2(file_path, &columns_to_analyze) {
-    //         Ok(data) => {
-    //             // Llamar a la función de PCA
-    //             if let Err(e) = pca_analysis(data, "pca_plot.png", 2) {
-    //                 eprintln!("Error in PCA analysis: {}", e);
-    //             }
-    //         }
-    //         Err(e) => {
-    //             eprintln!("Error reading CSV: {}", e);
-    //         }
-    //     }
-    // }
 }

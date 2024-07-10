@@ -3,7 +3,9 @@ pub mod file_type;
 pub mod row_stored;
 
 use crate::{
-    ai::{k_means::KMeansClustering, pca::PrincipalComponentsAnalisys},
+    ai::{
+        dbscan::DensityBaseClustering, k_means::KMeansClustering, pca::PrincipalComponentsAnalisys,
+    },
     constants::{english::ERROR_QUANTITATIVE_COLUMNS, path::CSV},
     correlation_analysis::CorrelationAnalysis,
     dynamictable::{iced_column::IcedColumn, iced_row::IcedRow, simple_column::SimpleColumn},
@@ -346,6 +348,30 @@ impl StoredFile {
                 PrincipalComponentsAnalisys::pca_analysis(base, compare, embedding_size).await
             {
                 //eprintln!("Error in PCA analysis: {}", e);
+                let error_msg: &'static str = Box::leak(Box::new(String::from(e.to_string())));
+                Err(error_msg)
+            } else {
+                Ok(())
+            }
+        } else {
+            Err(ERROR_QUANTITATIVE_COLUMNS)
+        }
+    }
+
+    pub async fn get_dbscan_analysis(
+        &self,
+        column_base: &SimpleColumn,
+        column_compare: &SimpleColumn,
+        eps: f64,
+        min_points: usize,
+    ) -> Result<(), &'static str> {
+        if is_quantitative(column_base, column_compare) {
+            let base = Self::convert_to_f64(&self.get_full_column(&column_base.index).await);
+            let compare = Self::convert_to_f64(&self.get_full_column(&column_compare.index).await);
+
+            if let Err(e) =
+                DensityBaseClustering::dbscan_analysis(base, compare, eps, min_points).await
+            {
                 let error_msg: &'static str = Box::leak(Box::new(String::from(e.to_string())));
                 Err(error_msg)
             } else {
