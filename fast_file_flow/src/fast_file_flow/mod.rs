@@ -1,7 +1,8 @@
 use crate::ai::k_means::KMeansClustering;
 use crate::constants::english::*;
 use crate::constants::icons::*;
-use crate::constants::path::KMEANS_RESULT;
+use crate::constants::path::KMEANS_IMAGE_RESULT;
+use crate::constants::path::PCA_IMAGE_RESULT;
 use crate::constants::sizes::{
     FONT_NAME, PANEL_FONT_SIZE, PANEL_HEIGHT, PANEL_WIDTH, SEARCH_TEXTBOX_WIDTH,
 };
@@ -108,6 +109,8 @@ pub enum FastFileFlowMessage {
     SetKMeans(KMeansClustering),
     SetKMeansCompleted(String),
     PreviewCompleted(Vec<IcedColumn>, Vec<IcedRow>),
+    AICompleted(),
+    PreviewButtonCloseClick(),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -1038,7 +1041,7 @@ impl FastFileFlow {
     fn show_ai_screen(&self) -> Element<'_, FastFileFlowMessage, Theme, iced::Renderer> {
         let container_ai = self.build_ia_statistics().height(PANEL_HEIGHT + 50.0);
         let path = get_full_directory();
-        let logo = KMEANS_RESULT;
+        let logo = PCA_IMAGE_RESULT;// KMEANS_IMAGE_RESULT;
         let full_path = format!("{path}/{logo}");
         let image = Image::new(full_path)
             .width(Fixed(1024.0))
@@ -1090,7 +1093,9 @@ impl FastFileFlow {
 
     fn show_preview_screen(&self) -> Element<'_, FastFileFlowMessage, Theme, iced::Renderer> {
         let close_button =
-            Button::new(Text::new(BUTTON_CLOSE)).on_press(FastFileFlowMessage::Router(Page::Main));
+            Button::new(Text::new(BUTTON_CLOSE)). on_press(
+      
+                FastFileFlowMessage::PreviewButtonCloseClick()            );
 
         let panel_preview = self
             .build_preview_panel()
@@ -1249,6 +1254,7 @@ Mexico 2024",
     }
 
     fn reset_state(&mut self) {
+        println!("reset");
         self.column_stadistics = Stadistics::default();
         self.correlation_file = CorrelationAnalysis::default();
         self.progress = 0.0;
@@ -1264,13 +1270,13 @@ Mexico 2024",
     fn router(&mut self, page: Page) {
         match page {
             Page::Main => {
-                self.columns = self.selected_file.columns.headers.clone();
-                self.rows = self.selected_file.rows.sample.clone();
+                
             }
             _ => {}
         }
         self.page = page;
     }
+
     fn set_file_not_found_error(&mut self) {
         self.set_error(ERROR_FILE_NOT_FOUNT);
     }

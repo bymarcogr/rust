@@ -3,8 +3,8 @@ pub mod file_type;
 pub mod row_stored;
 
 use crate::{
-    ai::k_means::KMeansClustering,
-    constants::path::CSV,
+    ai::{k_means::KMeansClustering, pca::PrincipalComponentsAnalisys},
+    constants::{english::ERROR_QUANTITATIVE_COLUMNS, path::CSV},
     correlation_analysis::CorrelationAnalysis,
     dynamictable::{iced_column::IcedColumn, iced_row::IcedRow, simple_column::SimpleColumn},
     save_options::SaveOptions,
@@ -321,15 +321,43 @@ impl StoredFile {
         &self,
         column_base: &SimpleColumn,
         column_compare: &SimpleColumn,
+        clusters: &usize,
+        iteraciones: &u64,
     ) -> Result<KMeansClustering, &'static str> {
-        if column_base.classification == DataClassification::Quantitative
-            && column_compare.classification == DataClassification::Quantitative
-        {
+        if is_quantitative(column_base, column_compare) {
             let base = Self::convert_to_f64(&self.get_full_column(&column_base.index).await);
             let compare = Self::convert_to_f64(&self.get_full_column(&column_compare.index).await);
-            Ok(KMeansClustering::new(base, compare, 3).await)
+            Ok(KMeansClustering::new(base, compare, *clusters, *iteraciones).await)
         } else {
-            Err("Error - Seleccione solo columnas del tipo { DataClassification::Quantitative }")
+            Err(ERROR_QUANTITATIVE_COLUMNS)
         }
     }
+    pub async fn get_pca_analysis(
+        &self,
+        column_base: &SimpleColumn,
+        column_compare: &SimpleColumn,
+        embedding_size: usize,
+    ) -> Result<(), &'static str> {
+        if is_quantitative(column_base, column_compare) {
+            let base = Self::convert_to_f64(&self.get_full_column(&column_base.index).await);
+            let compare = Self::convert_to_f64(&self.get_full_column(&column_compare.index).await);
+
+            if let Err(e) =
+                PrincipalComponentsAnalisys::pca_analysis(base, compare, embedding_size).await
+            {
+                //eprintln!("Error in PCA analysis: {}", e);
+                let error_msg: &'static str = Box::leak(Box::new(String::from(e.to_string())));
+                Err(error_msg)
+            } else {
+                Ok(())
+            }
+        } else {
+            Err(ERROR_QUANTITATIVE_COLUMNS)
+        }
+    }
+}
+
+fn is_quantitative(column_base: &SimpleColumn, column_compare: &SimpleColumn) -> bool {
+    column_base.classification == DataClassification::Quantitative
+        && column_compare.classification == DataClassification::Quantitative
 }

@@ -203,7 +203,7 @@ impl iced::Application for FastFileFlow {
 
                     iced::Command::batch(vec![com1])
                 } else {
-                    let item_deselect = self.header_checked.pop().unwrap();
+                    let item_deselect = self.header_checked.pop().unwrap().clone();
                     if item_deselect.index == index {
                         self.columns
                             .get_mut(item_deselect.index)
@@ -520,14 +520,28 @@ impl iced::Application for FastFileFlow {
                     let column_compare = header.pop().unwrap();
                     let column_base = header.pop().unwrap();
                     let selected_file = self.selected_file.clone();
+
+                    // Command::perform(
+                    //     async move {
+                    //         selected_file
+                    //             .get_kmeans(&column_base, &column_compare)
+                    //             .await
+                    //     },
+                    //     |k_means| match k_means {
+                    //         Ok(value) => FastFileFlowMessage::SetKMeans(value),
+                    //         Err(e) => FastFileFlowMessage::SetKMeansCompleted(e.to_string()),
+                    //     },
+                    // )
+
                     Command::perform(
                         async move {
                             selected_file
-                                .get_kmeans(&column_base, &column_compare)
+                                // .get_kmeans(&column_base, &column_compare,10,500)
+                                .get_pca_analysis(&column_base, &column_compare, 2)
                                 .await
                         },
-                        |k_means| match k_means {
-                            Ok(value) => FastFileFlowMessage::SetKMeans(value),
+                        |result| match result {
+                            Ok(_) => FastFileFlowMessage::AICompleted(),
                             Err(e) => FastFileFlowMessage::SetKMeansCompleted(e.to_string()),
                         },
                     )
@@ -647,6 +661,18 @@ impl iced::Application for FastFileFlow {
                 self.columns = headers;
                 self.rows = rows;
                 self.router(Page::Preview);
+                Command::none()
+            }
+            FastFileFlowMessage::AICompleted() => {
+                self.enable_loading(false);
+                self.router(Page::AI);
+                Command::none()
+            }
+            FastFileFlowMessage::PreviewButtonCloseClick() => {
+                self.columns = self.selected_file.columns.headers.to_owned();
+                self.rows = self.selected_file.rows.sample.to_owned();
+                self.header_checked.clear();
+                self.router(Page::Main);
                 Command::none()
             }
         }

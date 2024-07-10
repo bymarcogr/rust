@@ -10,7 +10,7 @@ pub const DIALOG_FILE_EXTENSION_JSON: &str = "json";
 pub const ERROR_LOAD_ICON: &str = "Failed to load icon";
 pub const ERROR_GET_FOLDER: &str = "Failed to get current folder";
 pub const ERROR_QUANTITATIVE_COLUMNS: &str =
-    "Two columns selected must be Quantitative type to start the analysis.";
+    "Columns selected must be Quantitative type to start the analysis.";
 pub const ERROR_FILE_NOT_FOUNT: &str = "Select a CSV file to use this function";
 pub const ERROR_FILE_SAVE: &str = "An error occurs on file save process";
 pub const ERROR_PROJECT_INVALID: &str = "Invalid project file";
@@ -44,3 +44,5 @@ pub const BUTTON_CLOSE: &str = "Close";
 
 pub const DATA_CLASSIFICATION_QUALITATIVE: &str = "Qualitative";
 pub const DATA_CLASSIFICATION_QUANTITATIVE: &str = "Quantitative";
+
+pub const AI_IMAGE_RESULT_FOLDER: &str = "Failed to create output directory";

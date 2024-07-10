@@ -10,7 +10,7 @@ use linfa_clustering::KMeans;
 use ndarray::Array2;
 use plotters::prelude::*;
 
-use crate::constants::path::KMEANS_RESULT;
+use crate::constants::path::KMEANS_IMAGE_RESULT;
 
 #[derive(Debug, Clone)]
 pub struct KMeansClustering {
@@ -25,8 +25,9 @@ impl KMeansClustering {
             result_image_path: String::default(),
         }
     }
-    pub async fn new(base: Vec<f64>, compare: Vec<f64>, clusters: usize) -> Self {
-        let (centroid_details, result_image_path) = Self::get_prediction(base, compare, clusters);
+    pub async fn new(base: Vec<f64>, compare: Vec<f64>, clusters: usize, iteraciones: u64) -> Self {
+        let (centroid_details, result_image_path) =
+            Self::get_prediction(base, compare, clusters, iteraciones);
         Self {
             centroid_details,
             result_image_path,
@@ -37,6 +38,7 @@ impl KMeansClustering {
         column1: Vec<f64>,
         column2: Vec<f64>,
         n_clusters: usize,
+        iteraciones: u64,
     ) -> (String, String) {
         let data: Vec<Vec<f64>> = vec![column1, column2];
 
@@ -51,7 +53,7 @@ impl KMeansClustering {
         let dataset = DatasetBase::from(data);
         // Crear el modelo K-means
         let model = KMeans::params(n_clusters)
-            .max_n_iterations(500)
+            .max_n_iterations(iteraciones)
             .fit(&dataset)
             .expect("KMeans fitting failed");
 
@@ -62,7 +64,7 @@ impl KMeansClustering {
         let centroids = format!("Cluster centers:\n{:?}", model.centroids());
         println!("{}", centroids);
 
-        let path = KMEANS_RESULT;
+        let path = KMEANS_IMAGE_RESULT;
         let output_dir = std::path::Path::new("output");
 
         // Crear el directorio si no existe
