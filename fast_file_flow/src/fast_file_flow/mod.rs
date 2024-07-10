@@ -1,9 +1,9 @@
+use crate::ai::dbscan::DensityBaseClustering;
 use crate::ai::k_means::KMeansClustering;
+use crate::ai::pca::PrincipalComponentsAnalisys;
+use crate::ai::AiModel;
 use crate::constants::english::*;
 use crate::constants::icons::*;
-use crate::constants::path::DBSCAN_IMAGE_RESULT;
-use crate::constants::path::KMEANS_IMAGE_RESULT;
-use crate::constants::path::PCA_IMAGE_RESULT;
 use crate::constants::sizes::{
     FONT_NAME, PANEL_FONT_SIZE, PANEL_HEIGHT, PANEL_WIDTH, SEARCH_TEXTBOX_WIDTH,
 };
@@ -68,7 +68,9 @@ pub struct FastFileFlow {
 
     theme: Theme,
     search_value: String,
-    k_means_clustering: KMeansClustering,
+
+    ai_result: String,
+    ai_image: String,
 }
 
 #[derive(Debug, Clone)]
@@ -98,7 +100,6 @@ pub enum FastFileFlowMessage {
     PipelineButtonClick(),
     AnalysisButtonClick(),
     AnalysisCompleted(String),
-    AIButtonClick(),
     PreviewButtonClick(),
     SaveButtonClick(),
     ExportButtonClick(),
@@ -106,11 +107,11 @@ pub enum FastFileFlowMessage {
     SearchOnSubmit(),
     SyncHeader(scrollable::AbsoluteOffset),
     Resizing(usize, f32),
-    Resized,
-    SetKMeans(KMeansClustering),
-    SetKMeansCompleted(String),
+    Resized,    
     PreviewCompleted(Vec<IcedColumn>, Vec<IcedRow>),
-    AICompleted(),
+    AIButtonClick(),
+    AICompleted(AiModel,String, bool ),
+    AIAnalysisEvent(AiModel),
     PreviewButtonCloseClick(),
 }
 
@@ -148,7 +149,8 @@ impl FastFileFlow {
             column_options: vec![],
             column_option_selected: None,
             column_options_state: combo_box::State::new(vec![]),
-            k_means_clustering: KMeansClustering::default(),
+            ai_result: String::default(),
+            ai_image: String::default(),
         }
     }
     // Método para guardar selected_file y column_options en un archivo
@@ -231,6 +233,9 @@ impl FastFileFlow {
             rows: crate::stored_file::row_stored::RowStored::empty(),
             columns: crate::stored_file::column_stored::ColumnStored::empty(),
             file_name: String::from(""),
+            k_means: KMeansClustering::default(),
+            pca: PrincipalComponentsAnalisys::new(),
+            db_scan: DensityBaseClustering::new(),
         };
 
         // Deserializa column_options
@@ -1040,9 +1045,11 @@ impl FastFileFlow {
     }
 
     fn show_ai_screen(&self) -> Element<'_, FastFileFlowMessage, Theme, iced::Renderer> {
-        let container_ai = self.build_ia_statistics().height(PANEL_HEIGHT + 50.0);
+
+        let container_ai = self.build_ia_statistics().height(Length::Fill);
         let path = get_full_directory();
-        let logo = DBSCAN_IMAGE_RESULT;//PCA_IMAGE_RESULT;// KMEANS_IMAGE_RESULT;
+        
+        let logo = self.ai_image.as_str();
         let full_path = format!("{path}/{logo}");
         let image = Image::new(full_path)
             .width(Fixed(1024.0))
@@ -1051,9 +1058,8 @@ impl FastFileFlow {
         let render = row![
             image,
             TAB_SPACE,
-            column![container_ai,],
-            horizontal_space(),
-            column![vertical_space(), self.build_linear()]
+            column![container_ai, self.build_linear()],
+            horizontal_space(),           
         ];
         let border = Border {
             color: Color::from_rgb(0.315, 0.315, 0.315).into(),
@@ -1074,19 +1080,44 @@ impl FastFileFlow {
     }
 
     fn build_ia_statistics(&self) -> Container<FastFileFlowMessage, Theme, iced::Renderer> {
+       
+        let mut header = self.header_checked.clone();
+
+        let column_compare = header.pop().unwrap();
+        let column_base = header.pop().unwrap();
+
         let close_button =
             Button::new(Text::new(BUTTON_CLOSE)).on_press(FastFileFlowMessage::Router(Page::Main));
+            let kmeans_button =
+            Button::new(Text::new("K Means")).on_press(FastFileFlowMessage::AIAnalysisEvent(AiModel::KMeans));
+            let pca_button =
+            Button::new(Text::new("PCA")).on_press(FastFileFlowMessage::AIAnalysisEvent(AiModel::PCA));
+            let dbscan_button =
+            Button::new(Text::new("Db Scan")).on_press(FastFileFlowMessage::AIAnalysisEvent(AiModel::DbScan));
+        
         let panel_column_ai = column![
+            row![TAB_SPACE,  kmeans_button,TAB_SPACE,pca_button,TAB_SPACE,dbscan_button],
+            row![TAB_SPACE, horizontal_space() ],
+
             row![get_text(AI_CLUSTER_CENTER, true)
                 .height(Length::Fixed(24.0))
                 .width(Length::Fixed(PANEL_WIDTH)),],
-            row![TAB_SPACE],
+                
+            row![get_text(column_base.header, true)
+            .height(Length::Fixed(24.0))
+           ,TAB_SPACE,
+            get_text(column_compare.header, true)
+                .height(Length::Fixed(24.0))
+                ,],
+            
             row![get_text(
-                self.k_means_clustering.centroid_details.clone(),
+                self.ai_result.clone(),
                 false
             )],
             row![TAB_SPACE],
-            row![TAB_SPACE, horizontal_space(), close_button]
+            vertical_space(),
+            row![TAB_SPACE, horizontal_space(), close_button],
+            row![TAB_SPACE],
         ];
         let container_analysis = create_section_container_width(panel_column_ai, PANEL_WIDTH);
         container_analysis

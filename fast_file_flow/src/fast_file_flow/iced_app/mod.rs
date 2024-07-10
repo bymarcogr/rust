@@ -1,7 +1,11 @@
+use crate::ai::AiModel;
 use crate::constants::english;
 use crate::constants::english::*;
 use crate::constants::path::CSV;
+use crate::constants::path::DBSCAN_IMAGE_RESULT;
 use crate::constants::path::FFFLOW;
+use crate::constants::path::KMEANS_IMAGE_RESULT;
+use crate::constants::path::PCA_IMAGE_RESULT;
 use crate::correlation_analysis::CorrelationAnalysis;
 use crate::dynamictable::simple_column::SimpleColumn;
 use crate::export::Export;
@@ -512,55 +516,6 @@ impl iced::Application for FastFileFlow {
                 }
                 Command::none()
             }
-            FastFileFlowMessage::AIButtonClick() => {
-                if self.header_checked.len() == 2_usize {
-                    self.enable_loading(true);
-
-                    let mut header = self.header_checked.clone();
-                    let column_compare = header.pop().unwrap();
-                    let column_base = header.pop().unwrap();
-                    let selected_file = self.selected_file.clone();
-
-                    // Command::perform(
-                    //     async move {
-                    //         selected_file
-                    //             .get_kmeans(&column_base, &column_compare)
-                    //             .await
-                    //     },
-                    //     |k_means| match k_means {
-                    //         Ok(value) => FastFileFlowMessage::SetKMeans(value),
-                    //         Err(e) => FastFileFlowMessage::SetKMeansCompleted(e.to_string()),
-                    //     },
-                    // )
-
-                    // Command::perform(
-                    //     async move {
-                    //         selected_file
-                    //             .get_pca_analysis(&column_base, &column_compare, 2)
-                    //             .await
-                    //     },
-                    //     |result| match result {
-                    //         Ok(_) => FastFileFlowMessage::AICompleted(),
-                    //         Err(e) => FastFileFlowMessage::SetKMeansCompleted(e.to_string()),
-                    //     },
-                    // )
-                    Command::perform(
-                        async move {
-                            selected_file
-                                .get_dbscan_analysis(&column_base, &column_compare, 1.0, 4)
-                                .await
-                        },
-                        |result| match result {
-                            Ok(_) => FastFileFlowMessage::AICompleted(),
-                            Err(e) => FastFileFlowMessage::SetKMeansCompleted(e.to_string()),
-                        },
-                    )
-                } else {
-                    self.notification_message = ERROR_QUANTITATIVE_COLUMNS.to_string();
-                    self.enable_loading(false);
-                    Command::none()
-                }
-            }
             FastFileFlowMessage::PreviewButtonClick() => {
                 if self.is_file_loaded() {
                     let mut export_file =
@@ -655,27 +610,104 @@ impl iced::Application for FastFileFlow {
                 });
                 Command::none()
             }
-            FastFileFlowMessage::SetKMeans(k_means) => {
-                self.k_means_clustering = k_means;
-                self.router(Page::AI);
-
-                self.enable_loading(false);
-                Command::none()
-            }
-            FastFileFlowMessage::SetKMeansCompleted(result) => {
-                println!("{}", result);
-                self.enable_loading(false);
-                Command::none()
-            }
             FastFileFlowMessage::PreviewCompleted(headers, rows) => {
                 self.columns = headers;
                 self.rows = rows;
                 self.router(Page::Preview);
                 Command::none()
             }
-            FastFileFlowMessage::AICompleted() => {
+            FastFileFlowMessage::AIButtonClick() => {
+                if !self.is_file_loaded() {
+                    self.set_file_not_found_error();
+                } else {
+                    if self.header_checked.len() == 2_usize {
+                        self.router(Page::AI);
+                    } else {
+                        self.notification_message = ERROR_QUANTITATIVE_COLUMNS.to_string();
+                        self.enable_loading(false);
+                    }
+                }
+
+                Command::none()
+            }
+            FastFileFlowMessage::AIAnalysisEvent(model) => {
+                if !self.is_file_loaded() {
+                    self.set_file_not_found_error();
+                    Command::none()
+                } else {
+                    self.enable_loading(true);
+                    let mut header = self.header_checked.clone();
+
+                    let column_compare = header.pop().unwrap();
+                    let column_base = header.pop().unwrap();
+                    let selected_file = self.selected_file.clone();
+                    self.ai_image = String::default();
+
+                    match model {
+                        AiModel::KMeans => Command::perform(
+                            async move {
+                                selected_file
+                                    .get_kmeans(&column_base, &column_compare, &3, &500)
+                                    .await
+                            },
+                            |k_means| match k_means {
+                                Ok(value) => FastFileFlowMessage::AICompleted(
+                                    model,
+                                    value.to_string(),
+                                    false,
+                                ),
+                                Err(e) => {
+                                    FastFileFlowMessage::AICompleted(model, e.to_string(), true)
+                                }
+                            },
+                        ),
+                        AiModel::PCA => Command::perform(
+                            async move {
+                                selected_file
+                                    .get_pca_analysis(&column_base, &column_compare, 2)
+                                    .await
+                            },
+                            |result| match result {
+                                Ok(str) => FastFileFlowMessage::AICompleted(model, str, false),
+                                Err(e) => {
+                                    FastFileFlowMessage::AICompleted(model, e.to_string(), true)
+                                }
+                            },
+                        ),
+                        AiModel::DbScan => Command::perform(
+                            async move {
+                                selected_file
+                                    .get_dbscan_analysis(&column_base, &column_compare, 1.0, 4)
+                                    .await
+                            },
+                            |result| match result {
+                                Ok(s) => FastFileFlowMessage::AICompleted(model, s, false),
+                                Err(e) => {
+                                    FastFileFlowMessage::AICompleted(model, e.to_string(), true)
+                                }
+                            },
+                        ),
+                    }
+                }
+            }
+            FastFileFlowMessage::AICompleted(model, result, is_error) => {
+                if is_error {
+                    self.set_error(result.as_str());
+                    self.ai_image = "".to_string();
+                    self.ai_result = "".to_string();
+                } else {
+                    match model {
+                        AiModel::KMeans => self.ai_image = KMEANS_IMAGE_RESULT.to_owned(),
+                        AiModel::PCA => self.ai_image = PCA_IMAGE_RESULT.to_owned(),
+                        AiModel::DbScan => self.ai_image = DBSCAN_IMAGE_RESULT.to_owned(),
+                    };
+
+                    self.ai_result = result;
+                    self.router(Page::AI);
+                }
+
                 self.enable_loading(false);
-                self.router(Page::AI);
+
                 Command::none()
             }
             FastFileFlowMessage::PreviewButtonCloseClick() => {

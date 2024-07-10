@@ -100,4 +100,8 @@ impl KMeansClustering {
 
         (centroids, path.to_string())
     }
+
+    pub fn to_string(&self) -> String {
+        self.centroid_details.clone()
+    }
 }

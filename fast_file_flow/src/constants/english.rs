@@ -36,7 +36,7 @@ pub const EXPORT_ICON: &str = "Export File";
 pub const OPEN_ICON: &str = "Open FIle/Project";
 
 pub const PROCESSED_FILENAME: &str = "processed";
-pub const AI_CLUSTER_CENTER: &str = "Cluster Center:";
+pub const AI_CLUSTER_CENTER: &str = "AI Analysis Info:";
 pub const PREVIEW_TITLE: &str = "Preview";
 pub const UNKNOWN_LABEL: &str = "Unknown";
 

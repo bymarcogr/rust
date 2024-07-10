@@ -41,6 +41,9 @@ pub struct StoredFile {
     pub sintaxis: FileType,
     pub rows: RowStored,
     pub columns: ColumnStored,
+    pub k_means: KMeansClustering,
+    pub pca: PrincipalComponentsAnalisys,
+    pub db_scan: DensityBaseClustering,
 }
 
 impl StoredFile {
@@ -54,12 +57,19 @@ impl StoredFile {
             sintaxis: FileType::Unknown,
             rows: RowStored::empty(),
             columns: ColumnStored::empty(),
+            k_means: KMeansClustering::default(),
+            pca: PrincipalComponentsAnalisys::new(),
+            db_scan: DensityBaseClustering::new(),
         }
     }
 
     pub async fn new(file_path: String) -> Self {
         let format = Self::get_file_extension(&file_path);
         let sintaxis = Self::detect_file_type(&file_path).await;
+
+        let k_means = KMeansClustering::default();
+        let pca = PrincipalComponentsAnalisys::new();
+        let db_scan = DensityBaseClustering::new();
 
         if format != CSV || sintaxis != FileType::CSV {
             Self {
@@ -71,6 +81,9 @@ impl StoredFile {
                 rows: RowStored::empty(),
                 columns: ColumnStored::empty(),
                 sintaxis,
+                k_means,
+                pca,
+                db_scan,
             }
         } else {
             Self {
@@ -82,6 +95,9 @@ impl StoredFile {
                 rows: Self::get_rows(&file_path).await.unwrap(),
                 columns: Self::get_columns(&file_path).await.unwrap(),
                 sintaxis: sintaxis,
+                k_means,
+                pca,
+                db_scan,
             }
         }
     }
@@ -97,6 +113,9 @@ impl StoredFile {
             Err(err) => return Err(err),
         };
 
+        self.k_means = KMeansClustering::default();
+        self.pca = PrincipalComponentsAnalisys::new();
+        self.db_scan = DensityBaseClustering::new();
         Ok(())
     }
 
@@ -339,19 +358,21 @@ impl StoredFile {
         column_base: &SimpleColumn,
         column_compare: &SimpleColumn,
         embedding_size: usize,
-    ) -> Result<(), &'static str> {
+    ) -> Result<String, &'static str> {
         if is_quantitative(column_base, column_compare) {
             let base = Self::convert_to_f64(&self.get_full_column(&column_base.index).await);
             let compare = Self::convert_to_f64(&self.get_full_column(&column_compare.index).await);
+            let mut principal_components_analisys = PrincipalComponentsAnalisys::new();
 
-            if let Err(e) =
-                PrincipalComponentsAnalisys::pca_analysis(base, compare, embedding_size).await
+            match principal_components_analisys
+                .pca_analysis(base, compare, embedding_size)
+                .await
             {
-                //eprintln!("Error in PCA analysis: {}", e);
-                let error_msg: &'static str = Box::leak(Box::new(String::from(e.to_string())));
-                Err(error_msg)
-            } else {
-                Ok(())
+                Ok(s) => Ok(s),
+                Err(e) => {
+                    let error_msg: &'static str = Box::leak(Box::new(String::from(e.to_string())));
+                    Err(error_msg)
+                }
             }
         } else {
             Err(ERROR_QUANTITATIVE_COLUMNS)
@@ -364,18 +385,16 @@ impl StoredFile {
         column_compare: &SimpleColumn,
         eps: f64,
         min_points: usize,
-    ) -> Result<(), &'static str> {
+    ) -> Result<String, &'static str> {
         if is_quantitative(column_base, column_compare) {
             let base = Self::convert_to_f64(&self.get_full_column(&column_base.index).await);
             let compare = Self::convert_to_f64(&self.get_full_column(&column_compare.index).await);
-
-            if let Err(e) =
-                DensityBaseClustering::dbscan_analysis(base, compare, eps, min_points).await
-            {
-                let error_msg: &'static str = Box::leak(Box::new(String::from(e.to_string())));
-                Err(error_msg)
-            } else {
-                Ok(())
+            match DensityBaseClustering::dbscan_analysis(base, compare, eps, min_points).await {
+                Ok(s) => Ok(s),
+                Err(e) => {
+                    let error_msg: &'static str = Box::leak(Box::new(String::from(e.to_string())));
+                    Err(error_msg)
+                }
             }
         } else {
             Err(ERROR_QUANTITATIVE_COLUMNS)

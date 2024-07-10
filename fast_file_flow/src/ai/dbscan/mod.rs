@@ -13,9 +13,20 @@ use plotters::prelude::*;
 use string_builder::Builder;
 
 #[derive(Debug, Clone)]
-pub struct DensityBaseClustering {}
+pub struct DensityBaseClustering {
+    pub noise_points: String,
+    pub cluster_points: String,
+    result: String,
+}
 
 impl DensityBaseClustering {
+    pub fn new() -> Self {
+        Self {
+            noise_points: String::default(),
+            cluster_points: String::default(),
+            result: String::default(),
+        }
+    }
     pub async fn dbscan_analysis(
         column1: Vec<f64>,
         column2: Vec<f64>,
@@ -36,14 +47,14 @@ impl DensityBaseClustering {
 
         let mut builder = Builder::default();
 
-        builder.append("Result: ");
+        builder.append("Result: \n");
         for (label, count) in label_count {
             match label {
-                None => builder.append(format!(" - {} noise points", count)),
-                Some(i) => builder.append(format!(" - {} points in cluster {}", count, i)),
+                None => builder.append(format!(" - {} noise points\n", count)),
+                Some(i) => builder.append(format!(" - {} points in cluster {}\n", count, i)),
             }
         }
-
+        println!("Start Printing Image");
         let path = DBSCAN_IMAGE_RESULT;
 
         let root = BitMapBackend::new(path, (1024, 768)).into_drawing_area();
@@ -75,5 +86,9 @@ impl DensityBaseClustering {
         let result = builder.string().unwrap();
         println!("{}", &result);
         Ok(result)
+    }
+
+    pub fn to_string(&self) -> String {
+        self.result.clone()
     }
 }
