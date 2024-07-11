@@ -4,7 +4,8 @@ pub mod row_stored;
 
 use crate::{
     ai::{
-        dbscan::DensityBaseClustering, k_means::KMeansClustering, pca::PrincipalComponentsAnalisys,
+        dbscan::DensityBaseClustering, k_means::KMeansClustering, linear_regression::LnRegression,
+        pca::PrincipalComponentsAnalisys,
     },
     constants::path::CSV,
     correlation_analysis::CorrelationAnalysis,
@@ -43,6 +44,7 @@ pub struct StoredFile {
     pub k_means: KMeansClustering,
     pub principal_components_analisys: PrincipalComponentsAnalisys,
     pub density_base_clustering: DensityBaseClustering,
+    pub linear_regression_prediction: LnRegression,
 }
 
 impl StoredFile {
@@ -59,6 +61,7 @@ impl StoredFile {
             k_means: KMeansClustering::new(),
             principal_components_analisys: PrincipalComponentsAnalisys::new(),
             density_base_clustering: DensityBaseClustering::new(),
+            linear_regression_prediction: LnRegression::new(),
         }
     }
 
@@ -68,6 +71,7 @@ impl StoredFile {
         let k_means = KMeansClustering::new();
         let pca = PrincipalComponentsAnalisys::new();
         let db_scan = DensityBaseClustering::new();
+        let linear_regression_prediction = LnRegression::new();
 
         if format != CSV || sintaxis != FileType::CSV {
             Self {
@@ -82,6 +86,7 @@ impl StoredFile {
                 k_means,
                 principal_components_analisys: pca,
                 density_base_clustering: db_scan,
+                linear_regression_prediction,
             }
         } else {
             Self {
@@ -96,6 +101,7 @@ impl StoredFile {
                 k_means,
                 principal_components_analisys: pca,
                 density_base_clustering: db_scan,
+                linear_regression_prediction,
             }
         }
     }
@@ -414,6 +420,30 @@ impl StoredFile {
                     "Density-Based Spatial Clustering of Applications with Noise Error -",
                     start,
                 );
+                let error_msg: &'static str = Box::leak(Box::new(String::from(e.to_string())));
+                Err(error_msg)
+            }
+        }
+    }
+
+    pub async fn get_ln_rg_prediction(
+        &mut self,
+        column_base: &SimpleColumn,
+        column_compare: &SimpleColumn,
+    ) -> Result<String, &'static str> {
+        let (base, compare) = self.convert_columns_f64(column_base, column_compare).await;
+        let start = Instant::now();
+        match self
+            .linear_regression_prediction
+            .get_prediction(base, compare)
+            .await
+        {
+            Ok(s) => {
+                crate::util::print_timer("Linear Regression Prediction -", start);
+                Ok(s)
+            }
+            Err(e) => {
+                crate::util::print_timer("Linear Regression Prediction Error -", start);
                 let error_msg: &'static str = Box::leak(Box::new(String::from(e.to_string())));
                 Err(error_msg)
             }

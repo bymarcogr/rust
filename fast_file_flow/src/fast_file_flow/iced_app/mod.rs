@@ -691,7 +691,11 @@ impl iced::Application for FastFileFlow {
                                     .get_dbscan_analysis(&column_base, &column_compare, 1.0, 4)
                                     .await
                             }
-                            AiModel::LRegression => todo!(),
+                            AiModel::LRegression => {
+                                selected_file
+                                    .get_ln_rg_prediction(&column_base, &column_compare)
+                                    .await
+                            }
                             AiModel::KNN => todo!(),
                         }
                     },

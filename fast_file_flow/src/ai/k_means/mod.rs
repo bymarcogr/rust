@@ -38,9 +38,10 @@ impl KMeansClustering {
         iteraciones: u64,
     ) -> Result<String, Box<dyn Error>> {
         if self.is_dirty {
+            println!("kmean already exists");
             return Ok(self.to_string());
         }
-
+        println!("Loading Data");
         let data = Shared::get_dataset_info(column1, column2);
         let dataset = DatasetBase::from(data);
 

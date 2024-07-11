@@ -40,8 +40,10 @@ impl DensityBaseClustering {
         min_points: usize,
     ) -> Result<String, Box<dyn std::error::Error>> {
         if self.is_dirty {
+            println!("db scan already exists");
             return Ok(self.to_string());
         }
+        println!("Loading Data");
         let data = Shared::get_dataset_info(column1, column2);
         let dataset = DatasetBase::from(data);
         let ndata = dataset.clone();

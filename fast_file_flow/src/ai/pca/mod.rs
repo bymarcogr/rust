@@ -35,9 +35,10 @@ impl PrincipalComponentsAnalisys {
         embedding_size: usize,
     ) -> Result<String, Box<dyn Error>> {
         if self.is_dirty {
+            println!("pca already exists");
             return Ok(self.to_string());
         }
-
+        println!("Loading Data");
         let data = Shared::get_dataset_info(column1, column2);
         let dataset = DatasetBase::from(data);
 

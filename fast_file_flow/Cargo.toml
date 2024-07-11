@@ -17,6 +17,7 @@ image = "0.25.1"
 linfa = "0.7.0"
 linfa-clustering = "0.7.0"
 linfa-datasets = {version = "0.7.0", features =["generate"]}
+linfa-linear = "0.7.0"
 linfa-nn = "0.7.0"
 linfa-reduction = "0.7.0"
 lyon_algorithms = "1.0.4"

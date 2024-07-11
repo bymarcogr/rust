@@ -1,5 +1,6 @@
 use crate::ai::dbscan::DensityBaseClustering;
 use crate::ai::k_means::KMeansClustering;
+use crate::ai::linear_regression::LnRegression;
 use crate::ai::pca::PrincipalComponentsAnalisys;
 use crate::ai::AiModel;
 use crate::constants::english::*;
@@ -243,6 +244,7 @@ impl FastFileFlow {
             k_means: KMeansClustering::new(),
             principal_components_analisys: PrincipalComponentsAnalisys::new(),
             density_base_clustering: DensityBaseClustering::new(),
+            linear_regression_prediction: LnRegression::new(),
         };
 
         // Deserializa column_options
@@ -1104,9 +1106,11 @@ impl FastFileFlow {
             Button::new(Text::new("PCA")).on_press(FastFileFlowMessage::AIAnalysisEvent(AiModel::PCA));
             let dbscan_button =
             Button::new(Text::new("Db Scan")).on_press(FastFileFlowMessage::AIAnalysisEvent(AiModel::DbScan));
+            let lr_button =
+            Button::new(Text::new("Linear R")).on_press(FastFileFlowMessage::AIAnalysisEvent(AiModel::LRegression));
         
         let panel_column_ai = column![
-            row![TAB_SPACE,  kmeans_button,TAB_SPACE,pca_button,TAB_SPACE,dbscan_button],
+            row![TAB_SPACE,  kmeans_button,TAB_SPACE,pca_button,TAB_SPACE,dbscan_button, TAB_SPACE,lr_button],
             row![TAB_SPACE, horizontal_space() ],
 
             row![get_text(AI_CLUSTER_CENTER, true)
