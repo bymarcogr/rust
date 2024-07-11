@@ -16,7 +16,6 @@ use crate::constants::path::LR_IMAGE_RESULT;
 pub struct LnRegression {
     interceptor: String,
     regression_coeficient: String,
-    r2: String,
     pub result_image_path: String,
     pub is_dirty: bool,
 }
@@ -28,7 +27,6 @@ impl LnRegression {
             is_dirty: false,
             interceptor: String::default(),
             regression_coeficient: String::default(),
-            r2: String::default(),
         }
     }
 
@@ -89,20 +87,9 @@ impl LnRegression {
 
         let intercept = model.intercept();
         let coefficients = model.params();
-        let ss_total: f64 = col2_array
-            .iter()
-            .map(|&yi| (yi - col2_array.mean().unwrap()).powi(2))
-            .sum();
-        let ss_res: f64 = col2_array
-            .iter()
-            .zip(prediction_dataset.iter())
-            .map(|(&yi, &y_pred_i)| (yi - y_pred_i).powi(2))
-            .sum();
-        let r2 = 1.0 - (ss_res / ss_total);
 
-        self.interceptor = format!("Interceptot: {:.4}", intercept);
+        self.interceptor = format!("Interceptor: {:.4}", intercept);
         self.regression_coeficient = format!("Regression coeficient: {:.4}", coefficients[0]);
-        self.r2 = format!("R²: {:.4}", r2);
 
         println!("Start Printing Image");
         let path = LR_IMAGE_RESULT;
@@ -139,17 +126,6 @@ impl LnRegression {
             .legend(|(x, y)| PathElement::new(vec![(x, y), (x + 20, y)], &RED));
 
         chart
-            .draw_series(LineSeries::new(
-                col1_array
-                    .outer_iter()
-                    .zip(prediction_dataset.iter())
-                    .map(|(x, y)| (x[0], *y)),
-                &RED,
-            ))?
-            .label("Linear Regression")
-            .legend(|(x, y)| PathElement::new(vec![(x, y), (x + 20, y)], &RED));
-
-        chart
             .configure_series_labels()
             .background_style(&WHITE.mix(0.8))
             .border_style(&BLACK)
@@ -162,12 +138,11 @@ impl LnRegression {
         Ok(self.to_string())
     }
 
-    fn to_string(&self) -> String {
+    pub fn to_string(&self) -> String {
         format!(
             "{},
-{},
 {}",
-            self.interceptor, self.regression_coeficient, self.r2
+            self.interceptor, self.regression_coeficient
         )
     }
 }

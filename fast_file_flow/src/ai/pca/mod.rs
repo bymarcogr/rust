@@ -48,23 +48,45 @@ impl PrincipalComponentsAnalisys {
         let transformed_data = pca.transform(dataset);
 
         println!("Get Ranges");
-        let (min_x, max_x) = transformed_data
-            .records()
+
+        let transformed_array = transformed_data.records().to_owned();
+        if transformed_array.shape()[1] < embedding_size {
+            return Err(format!(
+                "The number of principal components is less than {}. Cannot be graphed",
+                embedding_size
+            )
+            .into());
+        }
+
+        let min_x = transformed_array
             .column(0)
-            .fold((f64::INFINITY, f64::NEG_INFINITY), |(min, max), &val| {
-                (min.min(val), max.max(val))
-            });
+            .iter()
+            .cloned()
+            .fold(f64::INFINITY, f64::min);
+
+        let max_x = transformed_array
+            .column(0)
+            .iter()
+            .cloned()
+            .fold(f64::NEG_INFINITY, f64::max);
+
+        let min_y = transformed_array
+            .column(1)
+            .iter()
+            .cloned()
+            .fold(f64::INFINITY, f64::min);
+
+        let max_y = transformed_array
+            .column(1)
+            .iter()
+            .cloned()
+            .fold(f64::NEG_INFINITY, f64::max);
 
         let x: Ranges = Ranges {
             max: max_x,
             min: min_x,
         };
-        let (min_y, max_y) = transformed_data
-            .records()
-            .column(1)
-            .fold((f64::INFINITY, f64::NEG_INFINITY), |(min, max), &val| {
-                (min.min(val), max.max(val))
-            });
+
         let y: Ranges = Ranges {
             max: max_y,
             min: min_y,
@@ -84,7 +106,7 @@ impl PrincipalComponentsAnalisys {
         println!("Start Printing Image");
         let path = PCA_IMAGE_RESULT;
 
-        let root = BitMapBackend::new(path, (1024, 768)).into_drawing_area();
+        let root = BitMapBackend::new(path, (1920, 768)).into_drawing_area();
         root.fill(&WHITE)?;
 
         let mut chart = ChartBuilder::on(&root)

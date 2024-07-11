@@ -353,7 +353,8 @@ impl StoredFile {
                 Ok(s)
             }
             Err(e) => {
-                crate::util::print_timer("K Means Error ", start);
+                let err = format!("K Means - Error - {}", e);
+                crate::util::print_timer(&err, start);
                 let error_msg: &'static str = Box::leak(Box::new(String::from(e.to_string())));
                 Err(error_msg)
             }
@@ -377,7 +378,8 @@ impl StoredFile {
                 Ok(s)
             }
             Err(e) => {
-                crate::util::print_timer("Principal Component Analisys Error -", start);
+                let err = format!("Principal Component Analisys Error - {}", e);
+                crate::util::print_timer(&err, start);
                 let error_msg: &'static str = Box::leak(Box::new(String::from(e.to_string())));
                 Err(error_msg)
             }
@@ -416,10 +418,12 @@ impl StoredFile {
                 Ok(s)
             }
             Err(e) => {
-                crate::util::print_timer(
-                    "Density-Based Spatial Clustering of Applications with Noise Error -",
-                    start,
+                let err = format!(
+                    "Density-Based Spatial Clustering of Applications with Noise Error - {}",
+                    e
                 );
+                crate::util::print_timer(&err, start);
+
                 let error_msg: &'static str = Box::leak(Box::new(String::from(e.to_string())));
                 Err(error_msg)
             }
@@ -443,7 +447,8 @@ impl StoredFile {
                 Ok(s)
             }
             Err(e) => {
-                crate::util::print_timer("Linear Regression Prediction Error -", start);
+                let err = format!("Linear Regression Prediction Error - {}", e);
+                crate::util::print_timer(&err, start);
                 let error_msg: &'static str = Box::leak(Box::new(String::from(e.to_string())));
                 Err(error_msg)
             }
