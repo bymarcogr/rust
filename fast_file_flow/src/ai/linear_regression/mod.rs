@@ -11,6 +11,7 @@ use plotters::prelude::*;
 
 use crate::ai::shared::Ranges;
 use crate::constants::path::LR_IMAGE_RESULT;
+use crate::constants::sizes::{IMAGE_HEIGHT, IMAGE_POINT_SIZE, IMAGE_WIDTH};
 
 #[derive(Debug, Clone)]
 pub struct LnRegression {
@@ -94,7 +95,7 @@ impl LnRegression {
         println!("Start Printing Image");
         let path = LR_IMAGE_RESULT;
 
-        let root = BitMapBackend::new(path, (1024, 768)).into_drawing_area();
+        let root = BitMapBackend::new(path, (IMAGE_WIDTH, IMAGE_HEIGHT)).into_drawing_area();
         root.fill(&WHITE)?;
 
         let mut chart = ChartBuilder::on(&root)
@@ -110,7 +111,7 @@ impl LnRegression {
             col1_array
                 .outer_iter()
                 .zip(col2_array.iter())
-                .map(|(x, y)| Circle::new((x[0], *y), 5, BLUE.filled())),
+                .map(|(x, y)| Circle::new((x[0], *y), IMAGE_POINT_SIZE, BLUE.filled())),
         )?;
 
         chart

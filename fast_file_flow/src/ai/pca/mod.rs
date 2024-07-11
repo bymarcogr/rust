@@ -2,7 +2,13 @@ extern crate csv;
 extern crate linfa;
 extern crate linfa_reduction;
 extern crate ndarray;
-use crate::{ai::shared::Ranges, constants::path::PCA_IMAGE_RESULT};
+use crate::{
+    ai::shared::Ranges,
+    constants::{
+        path::PCA_IMAGE_RESULT,
+        sizes::{IMAGE_HEIGHT, IMAGE_POINT_SIZE, IMAGE_WIDTH},
+    },
+};
 use linfa::prelude::*;
 use linfa_reduction::Pca;
 use plotters::prelude::*;
@@ -106,7 +112,7 @@ impl PrincipalComponentsAnalisys {
         println!("Start Printing Image");
         let path = PCA_IMAGE_RESULT;
 
-        let root = BitMapBackend::new(path, (1920, 768)).into_drawing_area();
+        let root = BitMapBackend::new(path, (IMAGE_WIDTH, IMAGE_HEIGHT)).into_drawing_area();
         root.fill(&WHITE)?;
 
         let mut chart = ChartBuilder::on(&root)
@@ -121,7 +127,7 @@ impl PrincipalComponentsAnalisys {
         for point in transformed_data.records().outer_iter() {
             chart.draw_series(std::iter::once(Circle::new(
                 (point[0], point[1]),
-                5,
+                IMAGE_POINT_SIZE,
                 RED.filled(),
             )))?;
         }

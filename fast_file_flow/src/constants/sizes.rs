@@ -8,3 +8,7 @@ pub const PANEL_HEIGHT: f32 = 170.0;
 pub const PANEL_WIDTH: f32 = 350.0;
 pub const SEARCH_TEXTBOX_WIDTH: f32 = 300.0;
 pub const PANEL_FONT_SIZE: f32 = 12.0;
+
+pub const IMAGE_HEIGHT: u32 = 768;
+pub const IMAGE_WIDTH: u32 = 1024;
+pub const IMAGE_POINT_SIZE: u32 = 3;

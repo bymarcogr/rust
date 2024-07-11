@@ -703,7 +703,9 @@ impl iced::Application for FastFileFlow {
                             value.to_string(),
                             false,
                         ),
-                        Err(e) => FastFileFlowMessage::AICompleted(model, e.to_string(), true),
+                        Err(e) => {
+                            FastFileFlowMessage::AICompleted(model.to_owned(), e.to_string(), true)
+                        }
                     },
                 )
             }

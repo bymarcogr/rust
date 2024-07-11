@@ -5,6 +5,7 @@ extern crate ndarray;
 use crate::ai::dbscan::linfa::dataset::Labels;
 use crate::ai::shared::{Ranges, Shared};
 use crate::constants::path::DBSCAN_IMAGE_RESULT;
+use crate::constants::sizes::{IMAGE_HEIGHT, IMAGE_POINT_SIZE, IMAGE_WIDTH};
 use linfa::traits::Transformer;
 use linfa::DatasetBase;
 use linfa_clustering::Dbscan;
@@ -92,7 +93,7 @@ impl DensityBaseClustering {
         println!("Start Printing Image");
         let path = DBSCAN_IMAGE_RESULT;
 
-        let root = BitMapBackend::new(path, (1024, 768)).into_drawing_area();
+        let root = BitMapBackend::new(path, (IMAGE_WIDTH, IMAGE_HEIGHT)).into_drawing_area();
         root.fill(&WHITE)?;
         let mut chart = ChartBuilder::on(&root)
             .caption("DBSCAN Clustering", ("sans-serif", 50).into_font())
@@ -113,7 +114,7 @@ impl DensityBaseClustering {
             };
             chart.draw_series(std::iter::once(Circle::new(
                 (point[0], point[1]),
-                5,
+                IMAGE_POINT_SIZE,
                 color.filled(),
             )))?;
         }

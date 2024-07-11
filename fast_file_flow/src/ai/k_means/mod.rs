@@ -6,6 +6,7 @@ extern crate plotters;
 
 use crate::ai::shared::{Ranges, Shared};
 use crate::constants::path::KMEANS_IMAGE_RESULT;
+use crate::constants::sizes::{IMAGE_HEIGHT, IMAGE_POINT_SIZE, IMAGE_WIDTH};
 use linfa::{
     traits::{Fit, Predict},
     DatasetBase,
@@ -83,7 +84,7 @@ impl KMeansClustering {
 
         let path = KMEANS_IMAGE_RESULT;
         // Visualización de los clusters
-        let root = BitMapBackend::new(path, (1024, 768)).into_drawing_area();
+        let root = BitMapBackend::new(path, (IMAGE_WIDTH, IMAGE_HEIGHT)).into_drawing_area();
         root.fill(&WHITE).unwrap();
 
         let mut chart = ChartBuilder::on(&root)
@@ -106,7 +107,7 @@ impl KMeansClustering {
             chart
                 .draw_series(std::iter::once(Circle::new(
                     (point[0], point[1]),
-                    5,
+                    IMAGE_POINT_SIZE,
                     ShapeStyle {
                         color: color.to_rgba(),
                         filled: true,
@@ -120,7 +121,7 @@ impl KMeansClustering {
             chart
                 .draw_series(std::iter::once(Cross::new(
                     (center[0], center[1]),
-                    10,
+                    IMAGE_POINT_SIZE,
                     &BLACK,
                 )))
                 .unwrap();
