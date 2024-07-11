@@ -89,10 +89,10 @@ pub enum FastFileFlowMessage {
     SetCorrelationFile(CorrelationAnalysis),
     ColumnOptionSelected(SimpleColumn),
     ColumnOptionSelectedClosed(),
-    FilterButtonClick(),
+    ShowFilterButtonClick(),
     FilterEvent(usize, bool, OptionType),
     FilterTextEvent(usize, String, OptionType),
-    ProcessButtonClick(),
+    ShowProcessButtonClick(),
     ProcessEvent(usize, bool, OptionType),
     ProcessTextEvent(usize, String, OptionType),
     AddButtonClick(),
@@ -100,8 +100,8 @@ pub enum FastFileFlowMessage {
     PipelineButtonClick(),
     AnalysisButtonClick(),
     AnalysisCompleted(String),
-    PreviewButtonClick(),
-    SaveButtonClick(),
+    ShowPreviewButtonClick(),
+    SaveProjectButtonClick(),
     ExportButtonClick(),
     ExportCompletedEvent(String),
     SearchOnSubmit(),
@@ -109,7 +109,7 @@ pub enum FastFileFlowMessage {
     Resizing(usize, f32),
     Resized,    
     PreviewCompleted(Vec<IcedColumn>, Vec<IcedRow>),
-    AIButtonClick(),
+    ShowAIButtonClick(),
     AICompleted(AiModel,String, bool ),
     AIAnalysisEvent(AiModel),
     PreviewButtonCloseClick(),
@@ -233,9 +233,9 @@ impl FastFileFlow {
             rows: crate::stored_file::row_stored::RowStored::empty(),
             columns: crate::stored_file::column_stored::ColumnStored::empty(),
             file_name: String::from(""),
-            k_means: KMeansClustering::default(),
-            pca: PrincipalComponentsAnalisys::new(),
-            db_scan: DensityBaseClustering::new(),
+            k_means: KMeansClustering::new(),
+            principal_components_analisys: PrincipalComponentsAnalisys::new(),
+            density_base_clustering: DensityBaseClustering::new(),
         };
 
         // Deserializa column_options
@@ -583,13 +583,13 @@ impl FastFileFlow {
 
         let button_filter = get_menu_button(
             FILTER,
-            FastFileFlowMessage::FilterButtonClick(),
+            FastFileFlowMessage::ShowFilterButtonClick(),
             FILTER_ICON,
         );
 
         let button_process = get_menu_button(
             PROCESS,
-            FastFileFlowMessage::ProcessButtonClick(),
+            FastFileFlowMessage::ShowProcessButtonClick(),
             PROCESS_ICON,
         );
 
@@ -616,15 +616,15 @@ impl FastFileFlow {
             ANALYSIS_ICON,
         );
 
-        let button_ai = get_menu_button(AI, FastFileFlowMessage::AIButtonClick(), AI_ICON);
+        let button_ai = get_menu_button(AI, FastFileFlowMessage::ShowAIButtonClick(), AI_ICON);
 
         let button_preview = get_menu_button(
             PREVIEW,
-            FastFileFlowMessage::PreviewButtonClick(),
+            FastFileFlowMessage::ShowPreviewButtonClick(),
             PREVIEW_ICON,
         );
 
-        let button_save = get_menu_button(SAVE, FastFileFlowMessage::SaveButtonClick(), SAVE_ICON);
+        let button_save = get_menu_button(SAVE, FastFileFlowMessage::SaveProjectButtonClick(), SAVE_ICON);
 
         let button_export = get_menu_button(
             EXPORT,
@@ -1058,8 +1058,7 @@ impl FastFileFlow {
         let render = row![
             image,
             TAB_SPACE,
-            column![container_ai, self.build_linear()],
-            horizontal_space(),           
+            container_ai,
         ];
         let border = Border {
             color: Color::from_rgb(0.315, 0.315, 0.315).into(),
@@ -1118,6 +1117,7 @@ impl FastFileFlow {
             vertical_space(),
             row![TAB_SPACE, horizontal_space(), close_button],
             row![TAB_SPACE],
+            row![self.build_linear()]
         ];
         let container_analysis = create_section_container_width(panel_column_ai, PANEL_WIDTH);
         container_analysis
@@ -1299,13 +1299,12 @@ Mexico 2024",
         !self.file_loaded.is_empty()
     }
 
-    fn router(&mut self, page: Page) {
-        match page {
-            Page::Main => {
-                
-            }
-            _ => {}
-        }
+    pub fn is_quantitative(column_base: &SimpleColumn, column_compare: &SimpleColumn) -> bool {
+        column_base.classification == DataClassification::Quantitative
+            && column_compare.classification == DataClassification::Quantitative
+    }
+
+    fn router(&mut self, page: Page) {       
         self.page = page;
     }
 
@@ -1315,8 +1314,11 @@ Mexico 2024",
 
     fn set_error(&mut self, message: &str) {
         self.notification_message = message.to_string();
-    }
+    }    
 }
+
+
+
 
 fn create_section_container(
     section: Column<FastFileFlowMessage, Theme, iced::Renderer>,

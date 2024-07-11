@@ -6,11 +6,11 @@ use crate::{
     ai::{
         dbscan::DensityBaseClustering, k_means::KMeansClustering, pca::PrincipalComponentsAnalisys,
     },
-    constants::{english::ERROR_QUANTITATIVE_COLUMNS, path::CSV},
+    constants::path::CSV,
     correlation_analysis::CorrelationAnalysis,
     dynamictable::{iced_column::IcedColumn, iced_row::IcedRow, simple_column::SimpleColumn},
     save_options::SaveOptions,
-    stadistics::{data_classification::DataClassification, Stadistics},
+    stadistics::Stadistics,
 };
 use chardet::detect;
 use column_stored::ColumnStored;
@@ -42,8 +42,8 @@ pub struct StoredFile {
     pub rows: RowStored,
     pub columns: ColumnStored,
     pub k_means: KMeansClustering,
-    pub pca: PrincipalComponentsAnalisys,
-    pub db_scan: DensityBaseClustering,
+    pub principal_components_analisys: PrincipalComponentsAnalisys,
+    pub density_base_clustering: DensityBaseClustering,
 }
 
 impl StoredFile {
@@ -57,9 +57,9 @@ impl StoredFile {
             sintaxis: FileType::Unknown,
             rows: RowStored::empty(),
             columns: ColumnStored::empty(),
-            k_means: KMeansClustering::default(),
-            pca: PrincipalComponentsAnalisys::new(),
-            db_scan: DensityBaseClustering::new(),
+            k_means: KMeansClustering::new(),
+            principal_components_analisys: PrincipalComponentsAnalisys::new(),
+            density_base_clustering: DensityBaseClustering::new(),
         }
     }
 
@@ -67,7 +67,7 @@ impl StoredFile {
         let format = Self::get_file_extension(&file_path);
         let sintaxis = Self::detect_file_type(&file_path).await;
 
-        let k_means = KMeansClustering::default();
+        let k_means = KMeansClustering::new();
         let pca = PrincipalComponentsAnalisys::new();
         let db_scan = DensityBaseClustering::new();
 
@@ -82,8 +82,8 @@ impl StoredFile {
                 columns: ColumnStored::empty(),
                 sintaxis,
                 k_means,
-                pca,
-                db_scan,
+                principal_components_analisys: pca,
+                density_base_clustering: db_scan,
             }
         } else {
             Self {
@@ -96,8 +96,8 @@ impl StoredFile {
                 columns: Self::get_columns(&file_path).await.unwrap(),
                 sintaxis: sintaxis,
                 k_means,
-                pca,
-                db_scan,
+                principal_components_analisys: pca,
+                density_base_clustering: db_scan,
             }
         }
     }
@@ -113,9 +113,9 @@ impl StoredFile {
             Err(err) => return Err(err),
         };
 
-        self.k_means = KMeansClustering::default();
-        self.pca = PrincipalComponentsAnalisys::new();
-        self.db_scan = DensityBaseClustering::new();
+        self.k_means = KMeansClustering::new();
+        self.principal_components_analisys = PrincipalComponentsAnalisys::new();
+        self.density_base_clustering = DensityBaseClustering::new();
         Ok(())
     }
 
@@ -303,15 +303,9 @@ impl StoredFile {
         column_base: &SimpleColumn,
         column_compare: &SimpleColumn,
     ) -> Result<CorrelationAnalysis, &'static str> {
-        if column_base.classification == DataClassification::Quantitative
-            && column_compare.classification == DataClassification::Quantitative
-        {
-            let base = Self::convert_to_f64(&self.get_full_column(&column_base.index).await);
-            let compare = Self::convert_to_f64(&self.get_full_column(&column_compare.index).await);
-            Ok(CorrelationAnalysis::new(&base, &compare).await)
-        } else {
-            Err("Error - Quantitative columns only")
-        }
+        let base = Self::convert_to_f64(&self.get_full_column(&column_base.index).await);
+        let compare = Self::convert_to_f64(&self.get_full_column(&column_compare.index).await);
+        Ok(CorrelationAnalysis::new(&base, &compare).await)
     }
 
     fn convert_to_f64(vec: &Vec<String>) -> Vec<f64> {
@@ -339,70 +333,75 @@ impl StoredFile {
     }
 
     pub async fn get_kmeans(
-        &self,
+        &mut self,
         column_base: &SimpleColumn,
         column_compare: &SimpleColumn,
         clusters: &usize,
         iteraciones: &u64,
-    ) -> Result<KMeansClustering, &'static str> {
-        if is_quantitative(column_base, column_compare) {
-            let base = Self::convert_to_f64(&self.get_full_column(&column_base.index).await);
-            let compare = Self::convert_to_f64(&self.get_full_column(&column_compare.index).await);
-            Ok(KMeansClustering::new(base, compare, *clusters, *iteraciones).await)
-        } else {
-            Err(ERROR_QUANTITATIVE_COLUMNS)
+    ) -> Result<String, &'static str> {
+        let (base, compare) = self.convert_columns_f64(column_base, column_compare).await;
+
+        match self
+            .k_means
+            .get_prediction(base, compare, *clusters, *iteraciones)
+            .await
+        {
+            Ok(s) => Ok(s),
+            Err(e) => {
+                let error_msg: &'static str = Box::leak(Box::new(String::from(e.to_string())));
+                Err(error_msg)
+            }
         }
     }
     pub async fn get_pca_analysis(
-        &self,
+        &mut self,
         column_base: &SimpleColumn,
         column_compare: &SimpleColumn,
         embedding_size: usize,
     ) -> Result<String, &'static str> {
-        if is_quantitative(column_base, column_compare) {
-            let base = Self::convert_to_f64(&self.get_full_column(&column_base.index).await);
-            let compare = Self::convert_to_f64(&self.get_full_column(&column_compare.index).await);
-            let mut principal_components_analisys = PrincipalComponentsAnalisys::new();
+        let (base, compare) = self.convert_columns_f64(column_base, column_compare).await;
 
-            match principal_components_analisys
-                .pca_analysis(base, compare, embedding_size)
-                .await
-            {
-                Ok(s) => Ok(s),
-                Err(e) => {
-                    let error_msg: &'static str = Box::leak(Box::new(String::from(e.to_string())));
-                    Err(error_msg)
-                }
+        match self
+            .principal_components_analisys
+            .pca_analysis(base, compare, embedding_size)
+            .await
+        {
+            Ok(s) => Ok(s),
+            Err(e) => {
+                let error_msg: &'static str = Box::leak(Box::new(String::from(e.to_string())));
+                Err(error_msg)
             }
-        } else {
-            Err(ERROR_QUANTITATIVE_COLUMNS)
         }
     }
 
-    pub async fn get_dbscan_analysis(
+    async fn convert_columns_f64(
         &self,
+        column_base: &SimpleColumn,
+        column_compare: &SimpleColumn,
+    ) -> (Vec<f64>, Vec<f64>) {
+        let base = Self::convert_to_f64(&self.get_full_column(&column_base.index).await);
+        let compare = Self::convert_to_f64(&self.get_full_column(&column_compare.index).await);
+        (base, compare)
+    }
+
+    pub async fn get_dbscan_analysis(
+        &mut self,
         column_base: &SimpleColumn,
         column_compare: &SimpleColumn,
         eps: f64,
         min_points: usize,
     ) -> Result<String, &'static str> {
-        if is_quantitative(column_base, column_compare) {
-            let base = Self::convert_to_f64(&self.get_full_column(&column_base.index).await);
-            let compare = Self::convert_to_f64(&self.get_full_column(&column_compare.index).await);
-            match DensityBaseClustering::dbscan_analysis(base, compare, eps, min_points).await {
-                Ok(s) => Ok(s),
-                Err(e) => {
-                    let error_msg: &'static str = Box::leak(Box::new(String::from(e.to_string())));
-                    Err(error_msg)
-                }
+        let (base, compare) = self.convert_columns_f64(column_base, column_compare).await;
+        match self
+            .density_base_clustering
+            .dbscan_analysis(base, compare, eps, min_points)
+            .await
+        {
+            Ok(s) => Ok(s),
+            Err(e) => {
+                let error_msg: &'static str = Box::leak(Box::new(String::from(e.to_string())));
+                Err(error_msg)
             }
-        } else {
-            Err(ERROR_QUANTITATIVE_COLUMNS)
         }
     }
-}
-
-fn is_quantitative(column_base: &SimpleColumn, column_compare: &SimpleColumn) -> bool {
-    column_base.classification == DataClassification::Quantitative
-        && column_compare.classification == DataClassification::Quantitative
 }

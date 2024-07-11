@@ -5,6 +5,8 @@ use crate::constants::path::CSV;
 use crate::constants::path::DBSCAN_IMAGE_RESULT;
 use crate::constants::path::FFFLOW;
 use crate::constants::path::KMEANS_IMAGE_RESULT;
+use crate::constants::path::KNN_IMAGE_RESULT;
+use crate::constants::path::LR_IMAGE_RESULT;
 use crate::constants::path::PCA_IMAGE_RESULT;
 use crate::correlation_analysis::CorrelationAnalysis;
 use crate::dynamictable::simple_column::SimpleColumn;
@@ -229,7 +231,7 @@ impl iced::Application for FastFileFlow {
                 Command::none()
             }
 
-            FastFileFlowMessage::FilterButtonClick() => {
+            FastFileFlowMessage::ShowFilterButtonClick() => {
                 if !self.is_file_loaded() {
                     self.set_file_not_found_error();
                 } else {
@@ -237,7 +239,7 @@ impl iced::Application for FastFileFlow {
                 }
                 Command::none()
             }
-            FastFileFlowMessage::ProcessButtonClick() => {
+            FastFileFlowMessage::ShowProcessButtonClick() => {
                 if !self.is_file_loaded() {
                     self.set_file_not_found_error();
                 } else {
@@ -258,6 +260,11 @@ impl iced::Application for FastFileFlow {
                 Command::none()
             }
             FastFileFlowMessage::AnalysisButtonClick() => {
+                if !self.is_file_loaded() {
+                    self.set_file_not_found_error();
+                    return Command::none();
+                }
+
                 if self.header_checked.len() == 2_usize {
                     self.enable_loading(true);
 
@@ -265,17 +272,23 @@ impl iced::Application for FastFileFlow {
                     let column_compare = header.pop().unwrap();
                     let column_base = header.pop().unwrap();
                     let selected_file = self.selected_file.clone();
-                    Command::perform(
-                        async move {
-                            selected_file
-                                .get_correlation(&column_base.clone(), &column_compare.clone())
-                                .await
-                        },
-                        |correlation_file| match correlation_file {
-                            Ok(value) => FastFileFlowMessage::SetCorrelationFile(value),
-                            Err(e) => FastFileFlowMessage::AnalysisCompleted(e.to_string()),
-                        },
-                    )
+                    if FastFileFlow::is_quantitative(&column_base, &column_compare) {
+                        Command::perform(
+                            async move {
+                                selected_file
+                                    .get_correlation(&column_base.clone(), &column_compare.clone())
+                                    .await
+                            },
+                            |correlation_file| match correlation_file {
+                                Ok(value) => FastFileFlowMessage::SetCorrelationFile(value),
+                                Err(e) => FastFileFlowMessage::AnalysisCompleted(e.to_string()),
+                            },
+                        )
+                    } else {
+                        self.notification_message = ERROR_QUANTITATIVE_COLUMNS.to_string();
+                        self.enable_loading(false);
+                        Command::none()
+                    }
                 } else {
                     self.notification_message = ERROR_QUANTITATIVE_COLUMNS.to_string();
                     self.enable_loading(false);
@@ -516,7 +529,7 @@ impl iced::Application for FastFileFlow {
                 }
                 Command::none()
             }
-            FastFileFlowMessage::PreviewButtonClick() => {
+            FastFileFlowMessage::ShowPreviewButtonClick() => {
                 if self.is_file_loaded() {
                     let mut export_file =
                         Export::new(self.selected_file.clone(), self.column_options.clone());
@@ -532,7 +545,7 @@ impl iced::Application for FastFileFlow {
                     Command::none()
                 }
             }
-            FastFileFlowMessage::SaveButtonClick() => {
+            FastFileFlowMessage::SaveProjectButtonClick() => {
                 if self.is_file_loaded() {
                     if let Some(path) = FileDialog::new()
                         .add_filter(
@@ -616,7 +629,7 @@ impl iced::Application for FastFileFlow {
                 self.router(Page::Preview);
                 Command::none()
             }
-            FastFileFlowMessage::AIButtonClick() => {
+            FastFileFlowMessage::ShowAIButtonClick() => {
                 if !self.is_file_loaded() {
                     self.set_file_not_found_error();
                 } else {
@@ -633,62 +646,52 @@ impl iced::Application for FastFileFlow {
             FastFileFlowMessage::AIAnalysisEvent(model) => {
                 if !self.is_file_loaded() {
                     self.set_file_not_found_error();
-                    Command::none()
-                } else {
-                    self.enable_loading(true);
-                    let mut header = self.header_checked.clone();
+                    return Command::none();
+                }
 
-                    let column_compare = header.pop().unwrap();
-                    let column_base = header.pop().unwrap();
-                    let selected_file = self.selected_file.clone();
-                    self.ai_image = String::default();
+                self.enable_loading(true);
+                let mut header = self.header_checked.clone();
 
-                    match model {
-                        AiModel::KMeans => Command::perform(
-                            async move {
+                let column_compare = header.pop().unwrap();
+                let column_base = header.pop().unwrap();
+                let mut selected_file = self.selected_file.clone();
+                self.ai_image = String::default();
+                self.ai_result = String::default();
+
+                /*
+                 self.ai_image = ;
+                */
+                Command::perform(
+                    async move {
+                        match model {
+                            AiModel::KMeans => {
                                 selected_file
                                     .get_kmeans(&column_base, &column_compare, &3, &500)
                                     .await
-                            },
-                            |k_means| match k_means {
-                                Ok(value) => FastFileFlowMessage::AICompleted(
-                                    model,
-                                    value.to_string(),
-                                    false,
-                                ),
-                                Err(e) => {
-                                    FastFileFlowMessage::AICompleted(model, e.to_string(), true)
-                                }
-                            },
-                        ),
-                        AiModel::PCA => Command::perform(
-                            async move {
+                            }
+                            AiModel::PCA => {
                                 selected_file
                                     .get_pca_analysis(&column_base, &column_compare, 2)
                                     .await
-                            },
-                            |result| match result {
-                                Ok(str) => FastFileFlowMessage::AICompleted(model, str, false),
-                                Err(e) => {
-                                    FastFileFlowMessage::AICompleted(model, e.to_string(), true)
-                                }
-                            },
-                        ),
-                        AiModel::DbScan => Command::perform(
-                            async move {
+                            }
+                            AiModel::DbScan => {
                                 selected_file
                                     .get_dbscan_analysis(&column_base, &column_compare, 1.0, 4)
                                     .await
-                            },
-                            |result| match result {
-                                Ok(s) => FastFileFlowMessage::AICompleted(model, s, false),
-                                Err(e) => {
-                                    FastFileFlowMessage::AICompleted(model, e.to_string(), true)
-                                }
-                            },
+                            }
+                            AiModel::LRegression => todo!(),
+                            AiModel::KNN => todo!(),
+                        }
+                    },
+                    move |item| match item {
+                        Ok(value) => FastFileFlowMessage::AICompleted(
+                            model.to_owned(),
+                            value.to_string(),
+                            false,
                         ),
-                    }
-                }
+                        Err(e) => FastFileFlowMessage::AICompleted(model, e.to_string(), true),
+                    },
+                )
             }
             FastFileFlowMessage::AICompleted(model, result, is_error) => {
                 if is_error {
@@ -696,10 +699,12 @@ impl iced::Application for FastFileFlow {
                     self.ai_image = "".to_string();
                     self.ai_result = "".to_string();
                 } else {
-                    match model {
-                        AiModel::KMeans => self.ai_image = KMEANS_IMAGE_RESULT.to_owned(),
-                        AiModel::PCA => self.ai_image = PCA_IMAGE_RESULT.to_owned(),
-                        AiModel::DbScan => self.ai_image = DBSCAN_IMAGE_RESULT.to_owned(),
+                    self.ai_image = match model {
+                        AiModel::KMeans => KMEANS_IMAGE_RESULT.to_owned(),
+                        AiModel::PCA => PCA_IMAGE_RESULT.to_owned(),
+                        AiModel::DbScan => DBSCAN_IMAGE_RESULT.to_owned(),
+                        AiModel::LRegression => LR_IMAGE_RESULT.to_owned(),
+                        AiModel::KNN => KNN_IMAGE_RESULT.to_owned(),
                     };
 
                     self.ai_result = result;

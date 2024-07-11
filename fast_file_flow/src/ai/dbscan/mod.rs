@@ -3,9 +3,10 @@ extern crate linfa_clustering;
 extern crate ndarray;
 
 use crate::ai::dbscan::linfa::dataset::Labels;
-use crate::ai::shared::Shared;
+use crate::ai::shared::{Ranges, Shared};
 use crate::constants::path::DBSCAN_IMAGE_RESULT;
 use linfa::traits::Transformer;
+use linfa::DatasetBase;
 use linfa_clustering::Dbscan;
 use linfa_nn::distance::L2Dist;
 use linfa_nn::CommonNearestNeighbour;
@@ -17,6 +18,8 @@ pub struct DensityBaseClustering {
     pub noise_points: String,
     pub cluster_points: String,
     result: String,
+    pub result_image_path: String,
+    pub is_dirty: bool,
 }
 
 impl DensityBaseClustering {
@@ -25,15 +28,22 @@ impl DensityBaseClustering {
             noise_points: String::default(),
             cluster_points: String::default(),
             result: String::default(),
+            result_image_path: String::default(),
+            is_dirty: false,
         }
     }
     pub async fn dbscan_analysis(
+        &mut self,
         column1: Vec<f64>,
         column2: Vec<f64>,
         eps: f64,
         min_points: usize,
     ) -> Result<String, Box<dyn std::error::Error>> {
-        let (dataset, x, y) = Shared::get_dataset_info(column1, column2);
+        if self.is_dirty {
+            return Ok(self.to_string());
+        }
+        let data = Shared::get_dataset_info(column1, column2);
+        let dataset = DatasetBase::from(data);
 
         println!("Start Clustering");
         let assigned_clusters =
@@ -42,7 +52,30 @@ impl DensityBaseClustering {
                 .transform(dataset.clone())
                 .unwrap();
 
-        // sigle target dataset
+        println!("Get Ranges");
+        let (min_x, max_x) = assigned_clusters
+            .records()
+            .column(0)
+            .fold((f64::INFINITY, f64::NEG_INFINITY), |(min, max), &val| {
+                (min.min(val), max.max(val))
+            });
+
+        let x: Ranges = Ranges {
+            max: max_x,
+            min: min_x,
+        };
+        let (min_y, max_y) = assigned_clusters
+            .records()
+            .column(1)
+            .fold((f64::INFINITY, f64::NEG_INFINITY), |(min, max), &val| {
+                (min.min(val), max.max(val))
+            });
+        let y: Ranges = Ranges {
+            max: max_y,
+            min: min_y,
+        };
+
+        println!("Results");
         let label_count = assigned_clusters.label_count().remove(0);
 
         let mut builder = Builder::default();
@@ -68,7 +101,7 @@ impl DensityBaseClustering {
 
         chart.configure_mesh().draw()?;
 
-        for (i, point) in assigned_clusters.records().outer_iter().enumerate() {
+        for (i, point) in dataset.records().outer_iter().enumerate() {
             let cluster = assigned_clusters.targets()[i];
             let color = match cluster {
                 Some(0) => RED,
@@ -82,10 +115,11 @@ impl DensityBaseClustering {
                 color.filled(),
             )))?;
         }
-
-        let result = builder.string().unwrap();
-        println!("{}", &result);
-        Ok(result)
+        self.result_image_path = path.to_owned();
+        self.is_dirty = true;
+        self.result = builder.string().unwrap();
+        println!("{}", self.to_string());
+        Ok(self.to_string())
     }
 
     pub fn to_string(&self) -> String {

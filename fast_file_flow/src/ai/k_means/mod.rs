@@ -4,43 +4,47 @@ extern crate ndarray;
 extern crate ndarray_rand;
 extern crate plotters;
 
-use linfa::traits::{Fit, Predict};
+use crate::ai::shared::{Ranges, Shared};
+use crate::constants::path::KMEANS_IMAGE_RESULT;
+use linfa::{
+    traits::{Fit, Predict},
+    DatasetBase,
+};
 use linfa_clustering::KMeans;
 use plotters::prelude::*;
-
-use crate::ai::shared::Shared;
-use crate::constants::path::KMEANS_IMAGE_RESULT;
+use std::error::Error;
 
 #[derive(Debug, Clone)]
 pub struct KMeansClustering {
     pub centroid_details: String,
     pub result_image_path: String,
+    pub is_dirty: bool,
 }
 
 impl KMeansClustering {
-    pub fn default() -> Self {
+    pub fn new() -> Self {
         Self {
             centroid_details: String::default(),
             result_image_path: String::default(),
-        }
-    }
-    pub async fn new(base: Vec<f64>, compare: Vec<f64>, clusters: usize, iteraciones: u64) -> Self {
-        let (centroid_details, result_image_path) =
-            Self::get_prediction(base, compare, clusters, iteraciones);
-        Self {
-            centroid_details,
-            result_image_path,
+            is_dirty: false,
         }
     }
 
-    pub fn get_prediction(
+    pub async fn get_prediction(
+        &mut self,
         column1: Vec<f64>,
         column2: Vec<f64>,
         n_clusters: usize,
         iteraciones: u64,
-    ) -> (String, String) {
-        let (dataset, x, y) = Shared::get_dataset_info(column1, column2);
-        // Crear el modelo K-means
+    ) -> Result<String, Box<dyn Error>> {
+        if self.is_dirty {
+            return Ok(self.to_string());
+        }
+
+        let data = Shared::get_dataset_info(column1, column2);
+        let dataset = DatasetBase::from(data);
+
+        println!("Start Predicting");
         let model = KMeans::params(n_clusters)
             .max_n_iterations(iteraciones)
             .fit(&dataset)
@@ -49,7 +53,30 @@ impl KMeansClustering {
         // Predecir los clusters
         let assigned_clusters = model.predict(&dataset);
 
-        // Imprimir los centros de los clusters
+        println!("Get Ranges");
+        let (min_x, max_x) = dataset
+            .records()
+            .column(0)
+            .fold((f64::INFINITY, f64::NEG_INFINITY), |(min, max), &val| {
+                (min.min(val), max.max(val))
+            });
+
+        let x: Ranges = Ranges {
+            max: max_x,
+            min: min_x,
+        };
+        let (min_y, max_y) = dataset
+            .records()
+            .column(1)
+            .fold((f64::INFINITY, f64::NEG_INFINITY), |(min, max), &val| {
+                (min.min(val), max.max(val))
+            });
+        let y: Ranges = Ranges {
+            max: max_y,
+            min: min_y,
+        };
+
+        println!("Results");
         let centroids = format!("Cluster centers:\n{:?}", model.centroids());
         println!("{}", centroids);
 
@@ -98,7 +125,11 @@ impl KMeansClustering {
                 .unwrap();
         }
 
-        (centroids, path.to_string())
+        self.centroid_details = centroids;
+        self.result_image_path = path.to_owned();
+        self.is_dirty = true;
+
+        Ok(self.to_string())
     }
 
     pub fn to_string(&self) -> String {

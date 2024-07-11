@@ -17,14 +17,7 @@ impl Shared {
     pub fn get_dataset_info(
         column1: Vec<f64>,
         column2: Vec<f64>,
-    ) -> (
-        DatasetBase<
-            ArrayBase<OwnedRepr<f64>, Dim<[usize; 2]>>,
-            ArrayBase<OwnedRepr<()>, Dim<[usize; 1]>>,
-        >,
-        Ranges,
-        Ranges,
-    ) {
+    ) -> ArrayBase<OwnedRepr<f64>, Dim<[usize; 2]>> {
         Self::create_output_folder();
 
         let data: Vec<Vec<f64>> = vec![column1, column2];
@@ -39,8 +32,23 @@ impl Shared {
         )
         .unwrap();
 
-        let dataset = DatasetBase::from(data);
+        data
+    }
 
+    pub fn get_ranges(
+        dataset: &DatasetBase<
+            ArrayBase<OwnedRepr<f64>, Dim<[usize; 2]>>,
+            ArrayBase<OwnedRepr<Option<usize>>, Dim<[usize; 1]>>,
+        >, /*
+           DatasetBase<ArrayBase<OwnedRepr<f64>, Dim<[usize; 2]>>, ArrayBase<OwnedRepr<Option<usize>>, Dim<[usize; 1]>>>
+           DatasetBase<ArrayBase<OwnedRepr<f64>, Dim<[usize; 2]>>, ArrayBase<OwnedRepr<Option<usize>>, Dim<[usize; 1]>>>
+           DatasetBase<ArrayBase<OwnedRepr<f64>, Dim<[usize; 2]>>, ArrayBase<OwnedRepr<Option<usize>>, Dim<[usize; 1]>>>
+
+
+
+
+                   */
+    ) -> (Ranges, Ranges) {
         let (min_x, max_x) = dataset
             .records()
             .column(0)
@@ -62,7 +70,7 @@ impl Shared {
             max: max_y,
             min: min_y,
         };
-        (dataset, x, y)
+        (x, y)
     }
 
     fn create_output_folder() {
