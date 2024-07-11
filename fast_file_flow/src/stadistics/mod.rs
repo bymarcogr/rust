@@ -216,8 +216,8 @@ impl Stadistics {
         let median_value = Self::calculate_median(new_array.view());
         let variance_value = Self::manual_variance(&new_array);
         let std_dev_value = variance_value.sqrt();
-        let duration = start.elapsed();
-        println!("Analysis Execution time: {:?}", duration.as_secs_f64());
+
+        crate::util::print_timer("Stadistical Analysis", start);
 
         (
             distinct_count,

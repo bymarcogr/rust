@@ -31,6 +31,8 @@ use iced_table::table;
 use iced_widget::checkbox;
 use iced_widget::combo_box;
 use iced_widget::core::Element;
+use iced_widget::text_editor;
+use iced_widget::text_editor::Content;
 use iced_widget::vertical_space;
 use iced_widget::Image;
 use linear::Linear;
@@ -54,23 +56,23 @@ pub struct FastFileFlow {
     header: scrollable::Id,
     body: scrollable::Id,
     footer: scrollable::Id,
-    columns: Vec<IcedColumn>,
+    columns: Vec<IcedColumn>,    
     rows: Vec<IcedRow>,
     file_loaded: String,
     progress: f32,
     running: bool,
     header_checked: Vec<SimpleColumn>,
     notification_message: String,
-
     column_options: Vec<SimpleColumn>,
     column_option_selected: Option<SimpleColumn>,
     column_options_state: combo_box::State<SimpleColumn>,
-
     theme: Theme,
     search_value: String,
-
     ai_result: String,
     ai_image: String,
+    columns_backup:Vec<IcedColumn>,
+    header_checked_backup: Vec<SimpleColumn>,
+    result_content: Content,
 }
 
 #[derive(Debug, Clone)]
@@ -113,6 +115,7 @@ pub enum FastFileFlowMessage {
     AICompleted(AiModel,String, bool ),
     AIAnalysisEvent(AiModel),
     PreviewButtonCloseClick(),
+    ActionPerformed(text_editor::Action),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -151,8 +154,12 @@ impl FastFileFlow {
             column_options_state: combo_box::State::new(vec![]),
             ai_result: String::default(),
             ai_image: String::default(),
+            columns_backup: vec![],
+            result_content : Content::new(),
+            header_checked_backup: vec![]
         }
     }
+    
     // Método para guardar selected_file y column_options en un archivo
     pub fn save_to_file(&self, file_path: &str) -> io::Result<()> {
         let file = File::create(file_path)?;
@@ -1055,8 +1062,11 @@ impl FastFileFlow {
             .width(Fixed(1024.0))
             .height(Fixed(768.0));
 
+        let wrapper = container(image).width(Length::Fill).width(Length::Fill).align_x(iced::alignment::Horizontal::Center)
+            .align_y(iced::alignment::Vertical::Top);
+
         let render = row![
-            image,
+            wrapper,
             TAB_SPACE,
             container_ai,
         ];
@@ -1070,7 +1080,7 @@ impl FastFileFlow {
         container(render)
             .align_x(iced::alignment::Horizontal::Left)
             .align_y(iced::alignment::Vertical::Top)
-            .padding(40.0)
+            .padding([40.0, 40.0, 10.0, 40.0])
             .style(container::Appearance {
                 border,
                 ..Default::default()
@@ -1084,6 +1094,7 @@ impl FastFileFlow {
 
         let column_compare = header.pop().unwrap();
         let column_base = header.pop().unwrap();
+
 
         let close_button =
             Button::new(Text::new(BUTTON_CLOSE)).on_press(FastFileFlowMessage::Router(Page::Main));
@@ -1109,25 +1120,20 @@ impl FastFileFlow {
                 .height(Length::Fixed(24.0))
                 ,],
             
-            row![get_text(
-                self.ai_result.clone(),
-                false
-            )],
+            row![text_editor(&self.result_content).height(Length::Fill) .on_action(FastFileFlowMessage::ActionPerformed)],
             row![TAB_SPACE],
-            vertical_space(),
             row![TAB_SPACE, horizontal_space(), close_button],
             row![TAB_SPACE],
-            row![self.build_linear()]
+            row![self.build_linear(),
+            row![TAB_SPACE],]
         ];
         let container_analysis = create_section_container_width(panel_column_ai, PANEL_WIDTH);
         container_analysis
     }
-
+   
     fn show_preview_screen(&self) -> Element<'_, FastFileFlowMessage, Theme, iced::Renderer> {
         let close_button =
-            Button::new(Text::new(BUTTON_CLOSE)). on_press(
-      
-                FastFileFlowMessage::PreviewButtonCloseClick()            );
+            Button::new(Text::new(BUTTON_CLOSE)). on_press(FastFileFlowMessage::PreviewButtonCloseClick());
 
         let panel_preview = self
             .build_preview_panel()
@@ -1225,7 +1231,7 @@ Mexico 2024",
                 .easing(&easing::EMPHASIZED_ACCELERATE)
                 .cycle_duration(Duration::from_secs_f32(2_f32))
         } else {
-            Linear::default()
+            Linear::default().height(15.0)
         }
     }
     
@@ -1286,7 +1292,7 @@ Mexico 2024",
     }
 
     fn reset_state(&mut self) {
-        println!("reset");
+        println!("reset_state");
         self.column_stadistics = Stadistics::default();
         self.correlation_file = CorrelationAnalysis::default();
         self.progress = 0.0;
@@ -1302,6 +1308,16 @@ Mexico 2024",
     pub fn is_quantitative(column_base: &SimpleColumn, column_compare: &SimpleColumn) -> bool {
         column_base.classification == DataClassification::Quantitative
             && column_compare.classification == DataClassification::Quantitative
+    }
+
+    pub fn is_quantitative_by_header(header_checked: Vec<SimpleColumn>) -> (bool, SimpleColumn,SimpleColumn){
+        let mut header = header_checked.clone();
+        let column_compare = header.pop().unwrap();
+        let column_base = header.pop().unwrap();
+      
+        let result = FastFileFlow::is_quantitative(&column_base , &column_compare );
+            
+        (result, column_base, column_compare)
     }
 
     fn router(&mut self, page: Page) {       

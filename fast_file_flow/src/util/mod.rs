@@ -5,6 +5,7 @@ use iced::window::{icon::Error, Icon};
 use iced::Length::{self, Fixed};
 use iced::{Element, Font, Pixels};
 use std::path::{Path, PathBuf};
+use std::time::Instant;
 
 use crate::constants::english::{ERROR_GET_FOLDER, ERROR_LOAD_ICON, PROCESSED_FILENAME};
 use crate::constants::path::{LOGO_PRIMARY_PATH, LOGO_SECONDARY_PATH};
@@ -145,4 +146,12 @@ pub fn add_processed_to_filename(path_str: &str) -> String {
     }
 
     new_path.to_string_lossy().into_owned()
+}
+
+pub fn print_timer(process: &str, timer: Instant) {
+    println!(
+        "{} Execution time: {:?}",
+        process,
+        timer.elapsed().as_secs_f64()
+    );
 }

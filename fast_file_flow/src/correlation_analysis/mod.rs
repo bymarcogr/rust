@@ -25,12 +25,7 @@ impl CorrelationAnalysis {
             Self::pearson_correlation(column_base, column_compare),
             Self::covariance(column_base, column_compare)
         );
-        let duration = start.elapsed();
-
-        println!(
-            "Correlation Analysis Execution time: {:?}",
-            duration.as_secs_f64()
-        );
+        crate::util::print_timer("Correlation Analysis", start);
 
         Self {
             spearman_correlation: spearman,

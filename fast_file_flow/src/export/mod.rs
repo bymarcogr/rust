@@ -1,7 +1,7 @@
 use csv::WriterBuilder;
 use futures::stream::StreamExt;
-use std::{collections::HashMap, fs::remove_file};
-use tokio::{fs::File, time::Instant};
+use std::{collections::HashMap, fs::remove_file, time::Instant};
+use tokio::fs::File;
 
 use crate::{
     constants::english::ERROR_FILE_SAVE,
@@ -123,12 +123,12 @@ impl Export {
                 _ = wtr.flush();
                 break Ok((headers, preview_rows));
             };
+
             outer_loop_result
         });
 
         let result = handle_records.await.unwrap();
-        let duration = start.elapsed();
-        println!("Exported execution time: {:?}", duration.as_secs_f64());
+        crate::util::print_timer("Export CSV", start);
         result
     }
 
@@ -212,6 +212,7 @@ impl Export {
     }
 
     pub async fn get_preview(&mut self) -> (Vec<IcedColumn>, Vec<IcedRow>) {
+        let start = Instant::now();
         self.preview_enabled = true;
         let save_path = self.stored_file.get_export_path();
         let (columns, rows) = self
@@ -231,6 +232,8 @@ impl Export {
             .enumerate()
             .map(|(i, val)| IcedRow::new(val, i))
             .collect();
+
+        crate::util::print_timer("Process and Preview", start);
 
         (iced_preview_columns, iced_preview_rows)
     }

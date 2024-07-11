@@ -36,7 +36,7 @@ impl DensityBaseClustering {
         &mut self,
         column1: Vec<f64>,
         column2: Vec<f64>,
-        eps: f64,
+        tolerance: f64,
         min_points: usize,
     ) -> Result<String, Box<dyn std::error::Error>> {
         if self.is_dirty {
@@ -44,13 +44,13 @@ impl DensityBaseClustering {
         }
         let data = Shared::get_dataset_info(column1, column2);
         let dataset = DatasetBase::from(data);
+        let ndata = dataset.clone();
 
         println!("Start Clustering");
         let assigned_clusters =
             Dbscan::params_with(min_points, L2Dist, CommonNearestNeighbour::KdTree)
-                .tolerance(eps)
-                .transform(dataset.clone())
-                .unwrap();
+                .tolerance(tolerance)
+                .transform(dataset)?;
 
         println!("Get Ranges");
         let (min_x, max_x) = assigned_clusters
@@ -101,7 +101,7 @@ impl DensityBaseClustering {
 
         chart.configure_mesh().draw()?;
 
-        for (i, point) in dataset.records().outer_iter().enumerate() {
+        for (i, point) in ndata.to_owned().records().outer_iter().enumerate() {
             let cluster = assigned_clusters.targets()[i];
             let color = match cluster {
                 Some(0) => RED,

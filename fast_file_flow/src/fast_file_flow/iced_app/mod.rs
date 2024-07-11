@@ -21,8 +21,10 @@ use iced::widget::scrollable;
 use iced::Subscription;
 use iced::{Command, Element};
 use iced_futures::subscription;
+use iced_widget::text_editor::Content;
 use native_dialog::FileDialog;
 use std::time::Duration;
+use std::time::Instant;
 
 use super::FastFileFlow;
 use super::FastFileFlowMessage;
@@ -84,9 +86,10 @@ impl iced::Application for FastFileFlow {
 
                     if extension == CSV {
                         self.file_loaded = path.clone();
-                        Command::perform(StoredFile::new(path.clone()), |stored_file| {
-                            FastFileFlowMessage::SetSelectedFile(stored_file)
-                        })
+                        Command::perform(
+                            async move { StoredFile::new(path.clone()).await },
+                            |stored_file| FastFileFlowMessage::SetSelectedFile(stored_file),
+                        )
                     } else if extension == FFFLOW {
                         match self.load_from_file(path.as_str()) {
                             Ok(_) => Command::perform(async move {}, |_| {
@@ -268,11 +271,11 @@ impl iced::Application for FastFileFlow {
                 if self.header_checked.len() == 2_usize {
                     self.enable_loading(true);
 
-                    let mut header = self.header_checked.clone();
-                    let column_compare = header.pop().unwrap();
-                    let column_base = header.pop().unwrap();
                     let selected_file = self.selected_file.clone();
-                    if FastFileFlow::is_quantitative(&column_base, &column_compare) {
+                    let (is_quantitative, column_base, column_compare) =
+                        FastFileFlow::is_quantitative_by_header(self.header_checked.clone());
+
+                    if is_quantitative {
                         Command::perform(
                             async move {
                                 selected_file
@@ -557,7 +560,9 @@ impl iced::Application for FastFileFlow {
                         .ok()
                         .flatten()
                     {
+                        let start = Instant::now();
                         let _ = self.save_to_file(path.to_str().unwrap());
+                        crate::util::print_timer("Save Project ", start);
                     }
                 } else {
                     self.set_file_not_found_error();
@@ -624,6 +629,8 @@ impl iced::Application for FastFileFlow {
                 Command::none()
             }
             FastFileFlowMessage::PreviewCompleted(headers, rows) => {
+                self.columns_backup = self.columns.clone();
+                self.header_checked_backup = self.header_checked.clone();
                 self.columns = headers;
                 self.rows = rows;
                 self.router(Page::Preview);
@@ -632,23 +639,31 @@ impl iced::Application for FastFileFlow {
             FastFileFlowMessage::ShowAIButtonClick() => {
                 if !self.is_file_loaded() {
                     self.set_file_not_found_error();
+                    return Command::none();
+                }
+
+                if self.header_checked.len() != 2_usize {
+                    self.notification_message = ERROR_QUANTITATIVE_COLUMNS.to_string();
+                    self.enable_loading(false);
+                    return Command::none();
+                }
+
+                let (is_quantitative, _, _) =
+                    FastFileFlow::is_quantitative_by_header(self.header_checked.clone());
+
+                if is_quantitative {
+                    self.router(Page::AI);
+                    self.ai_result = "".to_string();
+                    self.ai_image = "".to_string();
+                    self.result_content = Content::new();
                 } else {
-                    if self.header_checked.len() == 2_usize {
-                        self.router(Page::AI);
-                    } else {
-                        self.notification_message = ERROR_QUANTITATIVE_COLUMNS.to_string();
-                        self.enable_loading(false);
-                    }
+                    self.notification_message = ERROR_QUANTITATIVE_COLUMNS.to_string();
+                    self.enable_loading(false);
                 }
 
                 Command::none()
             }
             FastFileFlowMessage::AIAnalysisEvent(model) => {
-                if !self.is_file_loaded() {
-                    self.set_file_not_found_error();
-                    return Command::none();
-                }
-
                 self.enable_loading(true);
                 let mut header = self.header_checked.clone();
 
@@ -658,9 +673,6 @@ impl iced::Application for FastFileFlow {
                 self.ai_image = String::default();
                 self.ai_result = String::default();
 
-                /*
-                 self.ai_image = ;
-                */
                 Command::perform(
                     async move {
                         match model {
@@ -710,16 +722,22 @@ impl iced::Application for FastFileFlow {
                     self.ai_result = result;
                     self.router(Page::AI);
                 }
-
+                self.result_content = Content::with_text(&self.ai_result);
                 self.enable_loading(false);
 
                 Command::none()
             }
             FastFileFlowMessage::PreviewButtonCloseClick() => {
-                self.columns = self.selected_file.columns.headers.to_owned();
+                self.columns = self.columns_backup.clone();
+                self.columns_backup = vec![];
+                self.header_checked = self.header_checked_backup.clone();
+                self.header_checked_backup = vec![];
                 self.rows = self.selected_file.rows.sample.to_owned();
-                self.header_checked.clear();
                 self.router(Page::Main);
+                Command::none()
+            }
+            FastFileFlowMessage::ActionPerformed(action) => {
+                self.result_content.perform(action);
                 Command::none()
             }
         }

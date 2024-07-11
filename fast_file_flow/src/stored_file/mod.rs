@@ -20,7 +20,7 @@ use futures::stream::StreamExt;
 use rayon::prelude::*;
 use row_stored::RowStored;
 use serde_json::Value;
-use std::{fs::metadata, io::Cursor, path::Path};
+use std::{fs::metadata, io::Cursor, path::Path, time::Instant};
 use std::{
     io::Error,
     time::{SystemTime, UNIX_EPOCH},
@@ -28,7 +28,6 @@ use std::{
 use tokio::{
     fs::File,
     io::{AsyncBufReadExt, AsyncReadExt, BufReader},
-    time::Instant,
 };
 
 #[derive(Debug, Clone)]
@@ -66,7 +65,6 @@ impl StoredFile {
     pub async fn new(file_path: String) -> Self {
         let format = Self::get_file_extension(&file_path);
         let sintaxis = Self::detect_file_type(&file_path).await;
-
         let k_means = KMeansClustering::new();
         let pca = PrincipalComponentsAnalisys::new();
         let db_scan = DensityBaseClustering::new();
@@ -217,12 +215,10 @@ impl StoredFile {
 
         let counter = handle_count.await.unwrap();
         let records_vec = handle_records.await.unwrap();
-        let duration = start.elapsed();
-        println!(
-            "Rows {:?} Execution time: {:?}",
-            counter,
-            duration.as_secs_f64()
-        );
+
+        let message = format!("Loading Rows {:?}", counter);
+        crate::util::print_timer(&message, start);
+
         Ok(RowStored::new(counter, records_vec))
     }
 
@@ -339,15 +335,19 @@ impl StoredFile {
         clusters: &usize,
         iteraciones: &u64,
     ) -> Result<String, &'static str> {
+        let start = Instant::now();
         let (base, compare) = self.convert_columns_f64(column_base, column_compare).await;
-
         match self
             .k_means
             .get_prediction(base, compare, *clusters, *iteraciones)
             .await
         {
-            Ok(s) => Ok(s),
+            Ok(s) => {
+                crate::util::print_timer("K Means ", start);
+                Ok(s)
+            }
             Err(e) => {
+                crate::util::print_timer("K Means Error ", start);
                 let error_msg: &'static str = Box::leak(Box::new(String::from(e.to_string())));
                 Err(error_msg)
             }
@@ -360,14 +360,18 @@ impl StoredFile {
         embedding_size: usize,
     ) -> Result<String, &'static str> {
         let (base, compare) = self.convert_columns_f64(column_base, column_compare).await;
-
+        let start = Instant::now();
         match self
             .principal_components_analisys
             .pca_analysis(base, compare, embedding_size)
             .await
         {
-            Ok(s) => Ok(s),
+            Ok(s) => {
+                crate::util::print_timer("Principal Component Analisys -", start);
+                Ok(s)
+            }
             Err(e) => {
+                crate::util::print_timer("Principal Component Analisys Error -", start);
                 let error_msg: &'static str = Box::leak(Box::new(String::from(e.to_string())));
                 Err(error_msg)
             }
@@ -388,17 +392,28 @@ impl StoredFile {
         &mut self,
         column_base: &SimpleColumn,
         column_compare: &SimpleColumn,
-        eps: f64,
+        tolerance: f64,
         min_points: usize,
     ) -> Result<String, &'static str> {
         let (base, compare) = self.convert_columns_f64(column_base, column_compare).await;
+        let start = Instant::now();
         match self
             .density_base_clustering
-            .dbscan_analysis(base, compare, eps, min_points)
+            .dbscan_analysis(base, compare, tolerance, min_points)
             .await
         {
-            Ok(s) => Ok(s),
+            Ok(s) => {
+                crate::util::print_timer(
+                    "Density-Based Spatial Clustering of Applications with Noise Analisys -",
+                    start,
+                );
+                Ok(s)
+            }
             Err(e) => {
+                crate::util::print_timer(
+                    "Density-Based Spatial Clustering of Applications with Noise Error -",
+                    start,
+                );
                 let error_msg: &'static str = Box::leak(Box::new(String::from(e.to_string())));
                 Err(error_msg)
             }
