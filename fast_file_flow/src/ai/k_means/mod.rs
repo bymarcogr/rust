@@ -129,6 +129,7 @@ impl KMeansClustering {
         self.centroid_details = centroids;
         self.result_image_path = path.to_owned();
         self.is_dirty = true;
+        println!("{}", self.to_string());
 
         Ok(self.to_string())
     }

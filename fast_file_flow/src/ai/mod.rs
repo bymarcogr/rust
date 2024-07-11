@@ -1,6 +1,5 @@
 pub mod dbscan;
 pub mod k_means;
-pub mod knn;
 pub mod linear_regression;
 pub mod pca;
 pub mod shared;
@@ -11,5 +10,4 @@ pub enum AiModel {
     PCA = 2,
     DbScan = 3,
     LRegression = 4,
-    KNN = 5,
 }

@@ -49,7 +49,7 @@ impl LnRegression {
         let dataset = DatasetBase::new(col1_array.clone(), col2_array.clone());
 
         println!("Start Predict");
-        let model = LinearRegression::default().fit(&dataset).unwrap();
+        let model = LinearRegression::default().fit(&dataset)?;
         let prediction_dataset = model.predict(dataset.records());
 
         println!("Get Ranges");
@@ -101,7 +101,7 @@ impl LnRegression {
         let r2 = 1.0 - (ss_res / ss_total);
 
         self.interceptor = format!("Interceptot: {:.4}", intercept);
-        self.regression_coeficient = format!("Coeficiente de Regresión: {:.4}", coefficients[0]);
+        self.regression_coeficient = format!("Regression coeficient: {:.4}", coefficients[0]);
         self.r2 = format!("R²: {:.4}", r2);
 
         println!("Start Printing Image");
@@ -119,7 +119,6 @@ impl LnRegression {
 
         chart.configure_mesh().draw()?;
 
-        // Graficar los puntos de datos originales
         chart.draw_series(
             col1_array
                 .outer_iter()
@@ -155,6 +154,10 @@ impl LnRegression {
             .background_style(&WHITE.mix(0.8))
             .border_style(&BLACK)
             .draw()?;
+
+        self.result_image_path = path.to_owned();
+        self.is_dirty = true;
+        println!("{}", self.to_string());
 
         Ok(self.to_string())
     }

@@ -5,7 +5,6 @@ use crate::constants::path::CSV;
 use crate::constants::path::DBSCAN_IMAGE_RESULT;
 use crate::constants::path::FFFLOW;
 use crate::constants::path::KMEANS_IMAGE_RESULT;
-use crate::constants::path::KNN_IMAGE_RESULT;
 use crate::constants::path::LR_IMAGE_RESULT;
 use crate::constants::path::PCA_IMAGE_RESULT;
 use crate::correlation_analysis::CorrelationAnalysis;
@@ -696,7 +695,6 @@ impl iced::Application for FastFileFlow {
                                     .get_ln_rg_prediction(&column_base, &column_compare)
                                     .await
                             }
-                            AiModel::KNN => todo!(),
                         }
                     },
                     move |item| match item {
@@ -720,7 +718,6 @@ impl iced::Application for FastFileFlow {
                         AiModel::PCA => PCA_IMAGE_RESULT.to_owned(),
                         AiModel::DbScan => DBSCAN_IMAGE_RESULT.to_owned(),
                         AiModel::LRegression => LR_IMAGE_RESULT.to_owned(),
-                        AiModel::KNN => KNN_IMAGE_RESULT.to_owned(),
                     };
 
                     self.ai_result = result;
