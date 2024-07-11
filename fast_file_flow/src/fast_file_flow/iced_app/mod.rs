@@ -35,17 +35,14 @@ impl iced::Application for FastFileFlow {
     type Message = FastFileFlowMessage;
     type Theme = iced::Theme;
 
-    // Inicializar el estado de la aplicación aquí
     fn new(_flags: ()) -> (FastFileFlow, Command<Self::Message>) {
         (FastFileFlow::default(), Command::none())
     }
 
-    // El título de la ventana de la aplicación
     fn title(&self) -> String {
         String::from(APP_TITLE)
     }
 
-    // Actualizaciones basadas en los mensajes aquí
     fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
         self.notification_message = String::from("");
 
@@ -574,10 +571,10 @@ impl iced::Application for FastFileFlow {
                 if self.is_file_loaded() {
                     if let Some(path) = FileDialog::new()
                         .add_filter(
-                            english::DIALOG_LOAD_PROJECT_TITLE,
-                            &[DIALOG_PROJECT_EXTENSION],
+                            english::DIALOG_FILE_EXTENSION_CSV,
+                            &[DIALOG_FILE_EXTENSION_CSV],
                         )
-                        .set_filename(format!("project.{}", DIALOG_PROJECT_EXTENSION).as_str())
+                        .set_filename(format!(".{}", DIALOG_FILE_EXTENSION_CSV).as_str())
                         .show_save_single_file()
                         .ok()
                         .flatten()

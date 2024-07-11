@@ -128,7 +128,7 @@ impl PrincipalComponentsAnalisys {
             chart.draw_series(std::iter::once(Circle::new(
                 (point[0], point[1]),
                 IMAGE_POINT_SIZE,
-                RED.filled(),
+                full_palette::LIGHTBLUE.filled(),
             )))?;
         }
         self.result_image_path = path.to_owned();

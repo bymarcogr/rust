@@ -1337,9 +1337,6 @@ Mexico 2024",
     }    
 }
 
-
-
-
 fn create_section_container(
     section: Column<FastFileFlowMessage, Theme, iced::Renderer>,
 ) -> Container<FastFileFlowMessage, Theme, iced::Renderer> {

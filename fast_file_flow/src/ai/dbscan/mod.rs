@@ -51,7 +51,7 @@ impl DensityBaseClustering {
 
         println!("Start Clustering");
         let assigned_clusters =
-            Dbscan::params_with(min_points, L2Dist, CommonNearestNeighbour::KdTree)
+            Dbscan::params_with(min_points, L2Dist, CommonNearestNeighbour::BallTree)
                 .tolerance(tolerance)
                 .transform(dataset)?;
 
