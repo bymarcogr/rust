@@ -12,6 +12,7 @@ use crate::{
     dynamictable::{iced_column::IcedColumn, iced_row::IcedRow, simple_column::SimpleColumn},
     save_options::SaveOptions,
     stadistics::Stadistics,
+    util::print_timer,
 };
 use chardet::detect;
 use column_stored::ColumnStored;
@@ -128,7 +129,7 @@ impl StoredFile {
             let simple_column: Vec<SimpleColumn> = self
                 .columns
                 .headers
-                .iter()
+                .par_iter()
                 .enumerate()
                 .map(|(index, item)| SimpleColumn {
                     index: index,
@@ -250,7 +251,6 @@ impl StoredFile {
         let mut buffer = String::new();
         let mut total_bytes_read = 0;
 
-        // Read lines until we have enough content to determine file type or reach 100 lines
         while total_bytes_read < 8192 {
             let bytes_read = buf_reader.read_line(&mut buffer).await.unwrap();
             if bytes_read == 0 {
@@ -273,22 +273,27 @@ impl StoredFile {
     }
 
     pub async fn get_full_column(&self, column_index: &usize) -> Vec<String> {
-        let mut rdr =
-            csv_async::AsyncReader::from_reader(File::open(&self.file_path).await.unwrap());
+        let start = Instant::now();
+        let file = File::open(&self.file_path).await.unwrap();
+        let mut rdr = csv_async::AsyncReader::from_reader(file);
         let index: usize = *column_index;
-        let handle_records = tokio::spawn(async move {
-            let mut records_vec = Vec::new();
-            let mut records = rdr.records();
 
-            while let Some(record) = records.next().await {
-                let value = record.unwrap().get(index).unwrap().to_string();
-                records_vec.push(value);
-            }
+        let handle_records = tokio::spawn(async move {
+            let records_vec: Vec<String> = rdr
+                .records()
+                .filter_map(|result| async {
+                    match result {
+                        Ok(record) => record.get(index).map(|value| value.to_string()),
+                        Err(_) => None,
+                    }
+                })
+                .collect()
+                .await;
             records_vec
         });
 
         let records_vec = handle_records.await.unwrap();
-
+        print_timer("Get full column", start);
         records_vec
     }
 

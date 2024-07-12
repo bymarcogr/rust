@@ -1,3 +1,4 @@
+use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use std::time::Instant;
 use tokio::join;
 
@@ -41,16 +42,13 @@ impl CorrelationAnalysis {
             "Vectors must be non-empty and of the same length"
         );
 
-        // Calcular la media de cada vector
-        let mean_x: f64 = column_base.iter().sum::<f64>() / len as f64;
-        let mean_y: f64 = column_compare.iter().sum::<f64>() / len as f64;
+        let mean_x: f64 = column_base.par_iter().sum::<f64>() / len as f64;
+        let mean_y: f64 = column_compare.par_iter().sum::<f64>() / len as f64;
 
-        // Inicializar las variables para los cálculos
         let mut numerator = 0.0;
         let mut denominator_x = 0.0;
         let mut denominator_y = 0.0;
 
-        // Calcular las sumas necesarias en una única iteración
         for i in 0..len {
             let diff_x = column_base[i] - mean_x;
             let diff_y = column_compare[i] - mean_y;
@@ -80,8 +78,8 @@ impl CorrelationAnalysis {
             "Vectors must be non-empty and of the same length"
         );
 
-        let mean_x: f64 = column_base.iter().sum::<f64>() / len as f64;
-        let mean_y: f64 = column_compare.iter().sum::<f64>() / len as f64;
+        let mean_x: f64 = column_base.par_iter().sum::<f64>() / len as f64;
+        let mean_y: f64 = column_compare.par_iter().sum::<f64>() / len as f64;
 
         let mut covariance = 0.0;
 
@@ -96,7 +94,7 @@ impl CorrelationAnalysis {
 
     fn rankify(v: &[f64]) -> Vec<f64> {
         let mut ranks = vec![0.0; v.len()];
-        let mut sorted: Vec<_> = v.iter().enumerate().collect();
+        let mut sorted: Vec<_> = v.par_iter().enumerate().collect();
         sorted.sort_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
 
         let mut rank = 1.0;

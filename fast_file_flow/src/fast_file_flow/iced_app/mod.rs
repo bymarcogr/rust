@@ -15,6 +15,7 @@ use crate::save_options::SaveOptions;
 use crate::stadistics::data_classification::DataClassification;
 use crate::stadistics::Stadistics;
 use crate::stored_file::StoredFile;
+use crate::util::print_timer;
 use iced::widget::combo_box;
 use iced::widget::scrollable;
 use iced::Subscription;
@@ -83,7 +84,12 @@ impl iced::Application for FastFileFlow {
                     if extension == CSV {
                         self.file_loaded = path.clone();
                         Command::perform(
-                            async move { StoredFile::new(path.clone()).await },
+                            async move {
+                                let start = Instant::now();
+                                let file = StoredFile::new(path.clone()).await;
+                                print_timer("File Loading", start);
+                                file
+                            },
                             |stored_file| FastFileFlowMessage::SetSelectedFile(stored_file),
                         )
                     } else if extension == FFFLOW {

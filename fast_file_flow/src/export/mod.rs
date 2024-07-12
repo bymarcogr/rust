@@ -1,5 +1,6 @@
 use csv::WriterBuilder;
 use futures::stream::StreamExt;
+use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use std::{collections::HashMap, fs::remove_file, time::Instant};
 use tokio::fs::File;
 
@@ -71,7 +72,7 @@ impl Export {
         // Add headers
         let headers: Vec<String> = self
             .simple_column
-            .iter()
+            .par_iter()
             .filter(|f| filter_column_fn(&columns_ignore, f.index))
             .map(|s| s.header.to_string())
             .collect();
@@ -134,7 +135,7 @@ impl Export {
 
     fn get_ignore_column(&self) -> Vec<usize> {
         self.simple_column
-            .iter()
+            .par_iter()
             .filter(|f| f.save_options.filter.ignore_column)
             .map(|item| item.index)
             .collect()
@@ -142,7 +143,7 @@ impl Export {
 
     fn get_ignored_row_if_empty_indexes(&self) -> Vec<usize> {
         self.simple_column
-            .iter()
+            .par_iter()
             .filter(|f| f.save_options.filter.ignore_row_if_empty)
             .map(|item| item.index)
             .collect()
@@ -150,7 +151,7 @@ impl Export {
 
     fn get_ignored_row_if_value_indexes(&self) -> HashMap<usize, String> {
         self.simple_column
-            .iter()
+            .par_iter()
             .filter(|f| f.save_options.filter.ignore_row_if)
             .map(|item| {
                 (
@@ -163,7 +164,7 @@ impl Export {
 
     fn get_replace_value_with(&self) -> HashMap<usize, String> {
         self.simple_column
-            .iter()
+            .par_iter()
             .filter(|f| f.save_options.process.replace_with)
             .map(|item| {
                 (
@@ -176,7 +177,7 @@ impl Export {
 
     fn get_replace_value_if_empty(&self) -> HashMap<usize, String> {
         self.simple_column
-            .iter()
+            .par_iter()
             .filter(|f| f.save_options.process.replace_if_empty)
             .map(|item| {
                 (
@@ -189,7 +190,7 @@ impl Export {
 
     fn get_do_trim(&self) -> Vec<usize> {
         self.simple_column
-            .iter()
+            .par_iter()
             .filter(|f| f.save_options.process.trim)
             .map(|item| item.index)
             .collect()
@@ -197,7 +198,7 @@ impl Export {
 
     fn get_replace_value_if_value(&self) -> HashMap<usize, (String, String)> {
         self.simple_column
-            .iter()
+            .par_iter()
             .filter(|f| f.save_options.process.replace_if)
             .map(|item| {
                 (
@@ -223,7 +224,7 @@ impl Export {
         let _ = remove_file(save_path);
 
         let iced_preview_columns: Vec<IcedColumn> = columns
-            .iter()
+            .par_iter()
             .map(|s| IcedColumn::new(s.to_string()))
             .collect();
 
@@ -247,7 +248,7 @@ fn ignore_row_if_empty(row: &Vec<(usize, String)>, ignore_enabled_index: &Vec<us
     if ignore_enabled_index.is_empty() {
         return false;
     }
-    row.iter()
+    row.par_iter()
         .filter(|(i, _)| ignore_enabled_index.contains(i))
         .any(|(_, val)| val.is_empty())
 }
@@ -260,7 +261,7 @@ fn ignore_row_if_value(
         return false;
     }
 
-    row.iter().any(|(i, val)| {
+    row.par_iter().any(|(i, val)| {
         ignore_enabled_index
             .get(i)
             .map_or(false, |expected_val| expected_val == val)
@@ -347,7 +348,7 @@ fn replace_value_if_equals(
 }
 
 fn remove_columns(row: &Vec<(usize, String)>, columns_ignore: &Vec<usize>) -> Vec<(usize, String)> {
-    row.iter()
+    row.par_iter()
         .filter(|(i, _)| !columns_ignore.contains(i))
         .map(|(i, s)| (*i, s.clone()))
         .collect()

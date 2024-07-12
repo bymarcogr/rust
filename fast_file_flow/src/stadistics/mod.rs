@@ -20,9 +20,9 @@ pub struct Stadistics {
     pub header: String,
     pub classification: DataClassification,
     pub data_type: DataType,
-    pub distinct: String, // numero diferentes
-    pub minimum: String,  // Minimo si aplica
-    pub maximum: String,  // Maximo si aplica
+    pub distinct: String,
+    pub minimum: String,
+    pub maximum: String,
     pub mean: String,
     pub median: String,
     pub mode: String,
@@ -177,13 +177,13 @@ impl Stadistics {
     ) -> (usize, f64, f64, f64, f64, f64, f64, f64, f64, f64, f64) {
         let start = Instant::now();
         let data: Vec<f64> = column
-            .iter()
+            .par_iter()
             .filter(|s| !s.is_empty())
             .filter_map(|s| s.parse::<f64>().ok())
             .collect();
-        let distinct_values: HashSet<_> = data.iter().map(|&x| x.to_bits()).collect();
+        let distinct_values: HashSet<_> = data.par_iter().map(|&x| x.to_bits()).collect();
         let distinct_count = distinct_values.len();
-        // Most repeated value (mode)
+
         let mut occurrences = HashMap::new();
         for &value in &data {
             *occurrences.entry(value.to_bits()).or_insert(0) += 1;
@@ -194,14 +194,13 @@ impl Stadistics {
             .map(|(val, _)| f64::from_bits(val))
             .unwrap_or(f64::NAN);
 
-        // Basic statistics
         let max = *data
-            .iter()
+            .par_iter()
             .max_by(|a, b| a.partial_cmp(b).unwrap())
             .unwrap();
 
         let min = *data
-            .iter()
+            .par_iter()
             .min_by(|a, b| a.partial_cmp(b).unwrap())
             .unwrap();
 
@@ -214,7 +213,7 @@ impl Stadistics {
         let new_array = ndarray::Array1::from(data);
         let mean_value = &new_array.mean().unwrap();
         let median_value = Self::calculate_median(new_array.view());
-        let variance_value = Self::manual_variance(&new_array);
+        let variance_value = Self::manual_variance(&new_array, mean_value);
         let std_dev_value = variance_value.sqrt();
 
         crate::util::print_timer("Stadistical Analysis", start);
@@ -234,12 +233,11 @@ impl Stadistics {
         )
     }
 
-    fn manual_variance(data: &Array1<f64>) -> f64 {
-        let mean = data.mean().unwrap();
+    fn manual_variance(data: &Array1<f64>, mean_value: &f64) -> f64 {
         let len = data.len() as f64;
         let sum: f64 = data
             .par_iter() // Usar iterador paralelo
-            .map(|&x| (x - mean).powi(2))
+            .map(|&x| (x - mean_value).powi(2))
             .sum();
         sum / len
     }
@@ -296,16 +294,15 @@ impl Stadistics {
         f64,
         f64,
     ) {
+        let start = Instant::now();
         let data: Vec<&str> = column
-            .iter()
+            .par_iter()
             .filter(|s| !s.is_empty())
             .map(|s| s.as_str())
             .collect();
 
-        // Distinct values
-        let distinct_values: HashSet<_> = data.iter().cloned().collect();
+        let distinct_values: HashSet<_> = data.par_iter().cloned().collect();
 
-        // Most repeated value (mode)
         let mut occurrences = HashMap::new();
         for &value in data.iter() {
             *occurrences.entry(value).or_insert(0) += 1;
@@ -315,13 +312,11 @@ impl Stadistics {
             .max_by_key(|&(_, count)| count)
             .map(|(val, _)| val);
 
-        // Basic statistics
-        let lengths: Vec<usize> = data.iter().map(|s| s.len()).collect();
-        let max = *lengths.iter().max().unwrap();
-        let min = *lengths.iter().min().unwrap();
-        let mean = lengths.iter().sum::<usize>() as f64 / lengths.len() as f64;
+        let lengths: Vec<usize> = data.par_iter().map(|s| s.len()).collect();
+        let max = *lengths.par_iter().max().unwrap();
+        let min = *lengths.par_iter().min().unwrap();
+        let mean = lengths.par_iter().sum::<usize>() as f64 / lengths.len() as f64;
 
-        // Calculate median manually
         let mut sorted_lengths = lengths.clone();
         sorted_lengths.sort();
         let median = if sorted_lengths.len() % 2 == 0 {
@@ -335,7 +330,7 @@ impl Stadistics {
         let variance = {
             let mean = mean;
             let variance_sum = lengths
-                .iter()
+                .par_iter()
                 .map(|&len| {
                     let diff = len as f64 - mean;
                     diff * diff
@@ -347,10 +342,9 @@ impl Stadistics {
         let std_dev = variance.sqrt();
         let range = max - min;
 
-        // Calculate quartiles
         let q1 = Self::calculate_quantile_text(&sorted_lengths, 0.25);
         let q3 = Self::calculate_quantile_text(&sorted_lengths, 0.75);
-
+        crate::util::print_timer("Stadistical Analysis Text", start);
         (
             distinct_values.len(),
             String::from(mode_value.unwrap()),

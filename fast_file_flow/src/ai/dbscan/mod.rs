@@ -47,13 +47,14 @@ impl DensityBaseClustering {
         println!("Loading Data");
         let data = Shared::get_dataset_info(column1, column2);
         let dataset = DatasetBase::from(data);
-        let ndata = dataset.clone();
 
         println!("Start Clustering");
-        let assigned_clusters =
-            Dbscan::params_with(min_points, L2Dist, CommonNearestNeighbour::BallTree)
-                .tolerance(tolerance)
-                .transform(dataset)?;
+        let assigned_clusters: DatasetBase<
+            ndarray::ArrayBase<ndarray::OwnedRepr<f64>, ndarray::Dim<[usize; 2]>>,
+            ndarray::ArrayBase<ndarray::OwnedRepr<Option<usize>>, ndarray::Dim<[usize; 1]>>,
+        > = Dbscan::params_with(min_points, L2Dist, CommonNearestNeighbour::BallTree)
+            .tolerance(tolerance)
+            .transform(dataset.clone())?;
 
         println!("Get Ranges");
         let (min_x, max_x) = assigned_clusters
@@ -104,7 +105,7 @@ impl DensityBaseClustering {
 
         chart.configure_mesh().draw()?;
 
-        for (i, point) in ndata.to_owned().records().outer_iter().enumerate() {
+        for (i, point) in dataset.records().outer_iter().enumerate() {
             let cluster = assigned_clusters.targets()[i];
             let color = match cluster {
                 Some(0) => RED,
