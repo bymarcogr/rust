@@ -1,6 +1,6 @@
 use csv::WriterBuilder;
 use futures::stream::StreamExt;
-use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
+use rayon::prelude::*;
 use std::{collections::HashMap, fs::remove_file, time::Instant};
 use tokio::fs::File;
 
@@ -24,16 +24,17 @@ impl Export {
             simple_column,
             stored_file,
             preview: (vec![], vec![]),
-            preview_enabled: bool::default(),
+            preview_enabled: false,
             max_preview_rows: 70,
         }
     }
+
     pub fn default() -> Self {
         Self {
             simple_column: vec![],
             stored_file: StoredFile::default(),
             preview: (vec![], vec![]),
-            preview_enabled: bool::default(),
+            preview_enabled: false,
             max_preview_rows: 0,
         }
     }
@@ -60,7 +61,6 @@ impl Export {
 
         let mut rdr = csv_async::AsyncReader::from_reader(File::open(&open_path).await.unwrap());
 
-        // Step 1
         let columns_ignore = self.get_ignore_column();
         let row_ignore_if_empty = self.get_ignored_row_if_empty_indexes();
         let row_ignore_if_value = self.get_ignored_row_if_value_indexes();
@@ -69,11 +69,10 @@ impl Export {
         let replace_with_trim = self.get_do_trim();
         let replace_if_value = self.get_replace_value_if_value();
 
-        // Add headers
         let headers: Vec<String> = self
             .simple_column
             .par_iter()
-            .filter(|f| filter_column_fn(&columns_ignore, f.index))
+            .filter(|f| !columns_ignore.contains(&f.index))
             .map(|s| s.header.to_string())
             .collect();
 
@@ -86,46 +85,74 @@ impl Export {
             let _ = wtr.serialize(&headers_clone);
 
             let mut records = rdr.records();
-            let outer_loop_result: Result<(Vec<String>, Vec<Vec<String>>), std::io::Error> = 'outer: loop {
-                while let Some(record) = records.next().await {
-                    let record = record.unwrap();
+            let mut row_buffer = Vec::new();
 
-                    let mut values: Vec<(usize, String)> = record
-                        .iter()
-                        .enumerate()
-                        .map(|s| (s.0, s.1.to_string()))
-                        .collect();
+            while let Some(record) = records.next().await {
+                let record = record.unwrap();
 
-                    if ignore_row_if_empty(&values, &row_ignore_if_empty) {
+                let mut values: Vec<(usize, String)> = record
+                    .iter()
+                    .enumerate()
+                    .map(|(i, v)| (i, v.to_string()))
+                    .collect();
+
+                if ignore_row_if_empty(&values, &row_ignore_if_empty)
+                    || ignore_row_if_value(&values, &row_ignore_if_value)
+                {
+                    continue;
+                }
+
+                for value in values.iter_mut() {
+                    let (index, ref mut val) = *value;
+
+                    if columns_ignore.contains(&index) {
                         continue;
                     }
 
-                    if ignore_row_if_value(&values, &row_ignore_if_value) {
-                        continue;
+                    if let Some(_new_value) = replace_with_trim.get(index) {
+                        *val = val.trim().to_string();
                     }
 
-                    values = remove_columns(&values, &columns_ignore);
-                    values = replace_do_trim(values, &replace_with_trim);
-                    values = replace_value_if_empty(values, &replace_if_empty);
-                    values = replace_value_with(values, &replace_with);
-                    values = replace_value_if_equals(values, &replace_if_value);
-
-                    let finals: Vec<String> = values.iter().map(|s| s.1.to_string()).collect();
-                    if preview_enabled {
-                        preview_rows.push(finals.clone());
-                        counter -= 1;
-                        if counter == 0 {
-                            break 'outer Ok((headers.clone(), preview_rows));
+                    if let Some(new_value) = replace_if_empty.get(&index) {
+                        if val.is_empty() {
+                            *val = new_value.clone();
                         }
                     }
 
-                    let _ = wtr.serialize(&finals);
-                }
-                _ = wtr.flush();
-                break Ok((headers, preview_rows));
-            };
+                    if let Some(new_value) = replace_with.get(&index) {
+                        *val = new_value.clone();
+                    }
 
-            outer_loop_result
+                    if let Some((current_value, new_value)) = replace_if_value.get(&index) {
+                        if val == current_value {
+                            *val = new_value.clone();
+                        }
+                    }
+                }
+
+                let finals: Vec<String> = values.into_iter().map(|(_, v)| v).collect();
+                if preview_enabled {
+                    preview_rows.push(finals.clone());
+                    counter -= 1;
+                    if counter == 0 {
+                        break;
+                    }
+                }
+
+                row_buffer.push(finals);
+                if row_buffer.len() >= 1000 {
+                    for row in row_buffer.drain(..) {
+                        let _ = wtr.serialize(&row);
+                    }
+                }
+            }
+
+            for row in row_buffer {
+                let _ = wtr.serialize(&row);
+            }
+
+            _ = wtr.flush();
+            Ok((headers, preview_rows))
         });
 
         let result = handle_records.await.unwrap();
@@ -240,116 +267,27 @@ impl Export {
     }
 }
 
-fn filter_column_fn(columns_ignore: &Vec<usize>, index: usize) -> bool {
-    !columns_ignore.contains(&index)
-}
-
-fn ignore_row_if_empty(row: &Vec<(usize, String)>, ignore_enabled_index: &Vec<usize>) -> bool {
+fn ignore_row_if_empty(row: &[(usize, String)], ignore_enabled_index: &[usize]) -> bool {
     if ignore_enabled_index.is_empty() {
         return false;
     }
-    row.par_iter()
-        .filter(|(i, _)| ignore_enabled_index.contains(i))
-        .any(|(_, val)| val.is_empty())
+    row.iter()
+        .any(|(i, val)| ignore_enabled_index.contains(i) && val.is_empty())
 }
 
 fn ignore_row_if_value(
-    row: &Vec<(usize, String)>,
+    row: &[(usize, String)],
     ignore_enabled_index: &HashMap<usize, String>,
 ) -> bool {
     if ignore_enabled_index.is_empty() {
         return false;
     }
 
-    row.par_iter().any(|(i, val)| {
-        ignore_enabled_index
-            .get(i)
-            .map_or(false, |expected_val| expected_val == val)
+    row.iter().any(|(i, val)| {
+        if let Some(expected_val) = ignore_enabled_index.get(i) {
+            expected_val == val
+        } else {
+            false
+        }
     })
-}
-
-fn replace_value_with(
-    row: Vec<(usize, String)>,
-    replace_index: &HashMap<usize, String>,
-) -> Vec<(usize, String)> {
-    if replace_index.is_empty() {
-        return row;
-    }
-
-    row.into_iter()
-        .map(|(i, v)| {
-            replace_index
-                .get(&i)
-                .map(|new_value| (i, new_value.clone()))
-                .unwrap_or((i, v))
-        })
-        .collect()
-}
-
-fn replace_value_if_empty(
-    row: Vec<(usize, String)>,
-    replace_index: &HashMap<usize, String>,
-) -> Vec<(usize, String)> {
-    if replace_index.is_empty() {
-        return row;
-    }
-
-    row.into_iter()
-        .map(|(i, v)| {
-            if v.is_empty() {
-                replace_index
-                    .get(&i)
-                    .map(|new_value| (i, new_value.clone()))
-                    .unwrap_or((i, v))
-            } else {
-                (i, v)
-            }
-        })
-        .collect()
-}
-
-fn replace_do_trim(row: Vec<(usize, String)>, replace_index: &Vec<usize>) -> Vec<(usize, String)> {
-    if replace_index.is_empty() {
-        return row;
-    }
-
-    row.into_iter()
-        .map(|(i, v)| {
-            if replace_index.contains(&i) {
-                (i, v.trim().to_string())
-            } else {
-                (i, v)
-            }
-        })
-        .collect()
-}
-
-fn replace_value_if_equals(
-    row: Vec<(usize, String)>,
-    replace_index: &HashMap<usize, (String, String)>,
-) -> Vec<(usize, String)> {
-    if replace_index.is_empty() {
-        return row;
-    }
-
-    row.into_iter()
-        .map(|(i, v)| {
-            if let Some((current_value, new_value)) = replace_index.get(&i) {
-                if &v == current_value {
-                    (i, new_value.clone())
-                } else {
-                    (i, v)
-                }
-            } else {
-                (i, v)
-            }
-        })
-        .collect()
-}
-
-fn remove_columns(row: &Vec<(usize, String)>, columns_ignore: &Vec<usize>) -> Vec<(usize, String)> {
-    row.par_iter()
-        .filter(|(i, _)| !columns_ignore.contains(i))
-        .map(|(i, s)| (*i, s.clone()))
-        .collect()
 }
