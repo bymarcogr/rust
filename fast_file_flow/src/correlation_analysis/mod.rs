@@ -42,8 +42,8 @@ impl CorrelationAnalysis {
             "Vectors must be non-empty and of the same length"
         );
 
-        let mean_x: f64 = column_base.par_iter().sum::<f64>() / len as f64;
-        let mean_y: f64 = column_compare.par_iter().sum::<f64>() / len as f64;
+        let mean_x: f64 = Self::mean(column_base);
+        let mean_y: f64 = Self::mean(column_compare);
 
         let mut numerator = 0.0;
         let mut denominator_x = 0.0;
@@ -71,27 +71,6 @@ impl CorrelationAnalysis {
         Self::pearson_correlation(&ranks_x, &ranks_y).await
     }
 
-    async fn covariance(column_base: &Vec<f64>, column_compare: &Vec<f64>) -> f64 {
-        let len = column_base.len();
-        assert!(
-            len > 0 && len == column_compare.len(),
-            "Vectors must be non-empty and of the same length"
-        );
-
-        let mean_x: f64 = column_base.par_iter().sum::<f64>() / len as f64;
-        let mean_y: f64 = column_compare.par_iter().sum::<f64>() / len as f64;
-
-        let mut covariance = 0.0;
-
-        for i in 0..len {
-            let diff_x = column_base[i] - mean_x;
-            let diff_y = column_compare[i] - mean_y;
-            covariance += diff_x * diff_y;
-        }
-
-        covariance / len as f64
-    }
-
     fn rankify(v: &[f64]) -> Vec<f64> {
         let mut ranks = vec![0.0; v.len()];
         let mut sorted: Vec<_> = v.par_iter().enumerate().collect();
@@ -105,5 +84,19 @@ impl CorrelationAnalysis {
             ranks[sorted[i].0] = rank;
         }
         ranks
+    }
+
+    pub async fn covariance(column_base: &Vec<f64>, column_compare: &Vec<f64>) -> f64 {
+        let mean_base = Self::mean(column_base);
+        let mean_compare = Self::mean(column_compare);
+        let cov: f64 = column_base
+            .par_iter()
+            .zip(column_compare.par_iter())
+            .map(|(&x, &y)| (x - mean_base) * (y - mean_compare))
+            .sum();
+        cov / (column_base.len() as f64 - 1.0)
+    }
+    fn mean(data: &[f64]) -> f64 {
+        data.iter().sum::<f64>() / data.len() as f64
     }
 }
