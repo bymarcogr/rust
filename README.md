@@ -211,9 +211,21 @@ cargo clean
 - [ ] Additional ML algorithms (SVM, Decision Trees)
 - [ ] Data transformation pipelines
 - [ ] Plugin system for custom processors
-- [ ] Cloud storage integration
-- [ ] Real-time data streaming
-- [ ] Advanced visualization options
+- [ ]Cloud storage integration
+- [ ]Real-time data streaming
+- [ ]Advanced visualization options
+- [ ]Support for CSV files using ';' as field separator to improve compatibility with regional data formats
+- [ ]Performance optimizations for handling large datasets using Rust concurrency and parallel processing
+- [ ]Enhanced correlation analysis with automatic handling of missing values
+- [ ]Processing time indicator in the UI status bar to show execution time of data preparation operations
+- [ ]Missing data counter per column to help identify data quality issues
+- [ ]Sensitive data anonymization module for protecting personal or confidential information
+- [ ]Automatic column generation based on user-defined rules, calculations, or transformations
+- [ ]Automatic data type detection and schema inference for structured datasets (AI)
+- [ ]Outlier detection using statistical and machine learning techniques to improve data quality analysis (AI)
+- [ ]Automatic feature engineering suggestions based on dataset characteristics (AI)
+- [ ]Smart data cleaning recommendations using pattern recognition and anomaly detection (AI)
+- [ ]Natural language querying to allow users to explore datasets using plain language commands (AI)
 
 ## Contributing
 
