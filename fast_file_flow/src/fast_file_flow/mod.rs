@@ -314,7 +314,7 @@ impl FastFileFlow {
             .into()
     }
 
-    fn build_header(&self) -> (Text, Row<FastFileFlowMessage, Theme, iced::Renderer>) {
+    fn build_header(&self) -> (Text<'_>, Row<'_, FastFileFlowMessage, Theme, iced::Renderer>) {
         let image = tooltip(
             get_logo(self.is_primary_logo),
             APP_TOOLTIP,
@@ -351,7 +351,7 @@ impl FastFileFlow {
         (clicked_button, header)
     }
 
-    fn build_panels(&self) -> Row<FastFileFlowMessage, Theme, iced::Renderer> {
+    fn build_panels(&self) -> Row<'_, FastFileFlowMessage, Theme, iced::Renderer> {
         let panel_file_details = column![
             row![
                 get_text("Filename:", false),
@@ -577,7 +577,7 @@ impl FastFileFlow {
         ]
     }
 
-    fn build_action_menu(&self) -> Row<FastFileFlowMessage, Theme, iced::Renderer> {
+    fn build_action_menu(&self) -> Row<'_, FastFileFlowMessage, Theme, iced::Renderer> {
         let button_open = get_menu_button(
             OPEN,
             FastFileFlowMessage::LoadFileButtonClick(false),
@@ -675,7 +675,7 @@ impl FastFileFlow {
         .into()
     }
 
-    fn build_table(&self) -> Row<FastFileFlowMessage, Theme, iced::Renderer> {
+    fn build_table(&self) -> Row<'_, FastFileFlowMessage, Theme, iced::Renderer> {
         let table = responsive(|size| {
             let mut table = table(
                 self.header.clone(),
@@ -697,7 +697,7 @@ impl FastFileFlow {
         row![table].padding([0.0, 0.0, 5.0, 0.0])
     }
 
-    fn build_status(&self) -> Row<FastFileFlowMessage, Theme, iced::Renderer> {
+    fn build_status(&self) -> Row<'_, FastFileFlowMessage, Theme, iced::Renderer> {
         let selected_file = Text::new(self.file_loaded.as_str())
             .width(Length::Fill)
             .size(Pixels(PANEL_FONT_SIZE));
@@ -736,7 +736,7 @@ impl FastFileFlow {
             .into()
     }
 
-    fn build_filter_statistics(&self) -> Container<FastFileFlowMessage, Theme, iced::Renderer> {
+    fn build_filter_statistics(&self) -> Container<'_, FastFileFlowMessage, Theme, iced::Renderer> {
         let option_selected = self.column_option_selected.clone().unwrap_or_default();
 
         let default_statistics: IcedColumn = IcedColumn::new(option_selected.header.clone());
@@ -798,7 +798,7 @@ impl FastFileFlow {
 
     fn build_header_combo_box(
         &self,
-    ) -> combo_box::ComboBox<SimpleColumn, FastFileFlowMessage, Theme, iced::Renderer> {
+    ) -> combo_box::ComboBox<'_, SimpleColumn, FastFileFlowMessage, Theme, iced::Renderer> {
         let combo_box = combo_box(
             &self.column_options_state,
             "Choose a column",
@@ -810,7 +810,7 @@ impl FastFileFlow {
         combo_box
     }
 
-    fn build_filter_panel(&self) -> Container<FastFileFlowMessage, Theme, iced::Renderer> {
+    fn build_filter_panel(&self) -> Container<'_, FastFileFlowMessage, Theme, iced::Renderer> {
         let close_button =
             Button::new(Text::new(BUTTON_CLOSE)).on_press(FastFileFlowMessage::Router(Page::Main));
 
@@ -923,7 +923,7 @@ impl FastFileFlow {
             .into()
     }
 
-    fn build_process_panel(&self) -> Container<FastFileFlowMessage, Theme, iced::Renderer> {
+    fn build_process_panel(&self) -> Container<'_, FastFileFlowMessage, Theme, iced::Renderer> {
         let close_button =
             Button::new(Text::new(BUTTON_CLOSE)).on_press(FastFileFlowMessage::Router(Page::Main));
 
@@ -1090,7 +1090,7 @@ impl FastFileFlow {
             .into()
     }
 
-    fn build_ia_statistics(&self) -> Container<FastFileFlowMessage, Theme, iced::Renderer> {
+    fn build_ia_statistics(&self) -> Container<'_, FastFileFlowMessage, Theme, iced::Renderer> {
        
         let mut header = self.header_checked.clone();
 
@@ -1169,7 +1169,7 @@ impl FastFileFlow {
             .into()
     }
 
-    fn build_preview_panel(&self) -> Container<FastFileFlowMessage, Theme, iced::Renderer> {
+    fn build_preview_panel(&self) -> Container<'_, FastFileFlowMessage, Theme, iced::Renderer> {
         let panel_column_preview = column![
             row![get_text(PREVIEW_TITLE, true)
                 .height(Length::Fixed(24.0))
@@ -1208,7 +1208,7 @@ impl FastFileFlow {
             .into()
     }
 
-    fn build_user_panel(&self) -> Container<FastFileFlowMessage, Theme, iced::Renderer> {
+    fn build_user_panel(&self) -> Container<'_, FastFileFlowMessage, Theme, iced::Renderer> {
         let close_button =
             Button::new(Text::new(BUTTON_CLOSE)).on_press(FastFileFlowMessage::Router(Page::Main));
 
@@ -1229,7 +1229,7 @@ Mexico 2024",
         create_section_container_width(panel_user, PANEL_WIDTH + 100.0)
     }
 
-    fn build_linear(&self) -> Linear<Theme> {
+    fn build_linear(&self) -> Linear<'_, Theme> {
         if self.running {
             Linear::new(340.0, 15.0)
                 .easing(&easing::EMPHASIZED_ACCELERATE)
@@ -1246,7 +1246,7 @@ Mexico 2024",
         option_type: OptionType,
         label: String,
         f: F,
-    ) -> checkbox::Checkbox<FastFileFlowMessage, Theme, iced::Renderer>
+    ) -> checkbox::Checkbox<'_, FastFileFlowMessage, Theme, iced::Renderer>
     where
         F: 'static + Fn(usize, bool, OptionType) -> FastFileFlowMessage,
     {

@@ -749,7 +749,7 @@ impl iced::Application for FastFileFlow {
         }
     }
 
-    fn view(&self) -> Element<Self::Message> {
+    fn view(&self) -> Element<'_, Self::Message> {
         match self.page {
             Page::Main => self.show_main_screen(),
             Page::Filter => self.show_filter_screen(),

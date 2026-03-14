@@ -24,22 +24,23 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cargo/registry
-          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('fast_file_flow/**/Cargo.lock') }}
 
       - name: Cache cargo index
         uses: actions/cache@v4
         with:
           path: ~/.cargo/git
-          key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-cargo-index-${{ hashFiles('fast_file_flow/**/Cargo.lock') }}
 
       - name: Cache cargo build
         uses: actions/cache@v4
         with:
-          path: target
-          key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
+          path: fast_file_flow/target
+          key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('fast_file_flow/**/Cargo.lock') }}
 
       - name: Run cargo check
         run: cargo check
+        working-directory: fast_file_flow
 
   fmt:
     name: Rustfmt
@@ -55,6 +56,7 @@ jobs:
 
       - name: Run cargo fmt
         run: cargo fmt --all -- --check
+        working-directory: fast_file_flow
 
   clippy:
     name: Clippy
@@ -72,22 +74,23 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cargo/registry
-          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('fast_file_flow/**/Cargo.lock') }}
 
       - name: Cache cargo index
         uses: actions/cache@v4
         with:
           path: ~/.cargo/git
-          key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-cargo-index-${{ hashFiles('fast_file_flow/**/Cargo.lock') }}
 
       - name: Cache cargo build
         uses: actions/cache@v4
         with:
-          path: target
-          key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
+          path: fast_file_flow/target
+          key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('fast_file_flow/**/Cargo.lock') }}
 
       - name: Run cargo clippy
         run: cargo clippy -- -D warnings
+        working-directory: fast_file_flow
 
   build:
     name: Build
@@ -102,6 +105,7 @@ jobs:
             target: x86_64-pc-windows-msvc
           - os: macos-latest
             target: x86_64-apple-darwin
+
     steps:
       - name: Checkout sources
         uses: actions/checkout@v4
@@ -121,25 +125,27 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cargo/registry
-          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('fast_file_flow/**/Cargo.lock') }}
 
       - name: Cache cargo index
         uses: actions/cache@v4
         with:
           path: ~/.cargo/git
-          key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-cargo-index-${{ hashFiles('fast_file_flow/**/Cargo.lock') }}
 
       - name: Cache cargo build
         uses: actions/cache@v4
         with:
-          path: target
-          key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
+          path: fast_file_flow/target
+          key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('fast_file_flow/**/Cargo.lock') }}
 
       - name: Build debug
         run: cargo build --target ${{ matrix.target }}
+        working-directory: fast_file_flow
 
       - name: Build release
         run: cargo build --release --target ${{ matrix.target }}
+        working-directory: fast_file_flow
 
       - name: Upload build artifacts
         if: matrix.os == 'windows-latest'
@@ -147,8 +153,8 @@ jobs:
         with:
           name: windows-build
           path: |
-            target/release/*.exe
-            target/release/*.dll
+            fast_file_flow/target/release/*.exe
+            fast_file_flow/target/release/*.dll
 
       - name: Upload build artifacts
         if: matrix.os == 'ubuntu-latest'
@@ -156,7 +162,7 @@ jobs:
         with:
           name: linux-build
           path: |
-            target/release/fast_file_flow
+            fast_file_flow/target/release/fast_file_flow
 
       - name: Upload build artifacts
         if: matrix.os == 'macos-latest'
@@ -164,7 +170,7 @@ jobs:
         with:
           name: macos-build
           path: |
-            target/release/fast_file_flow
+            fast_file_flow/target/release/fast_file_flow
 
   test:
     name: Test
@@ -185,19 +191,20 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cargo/registry
-          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('fast_file_flow/**/Cargo.lock') }}
 
       - name: Cache cargo index
         uses: actions/cache@v4
         with:
           path: ~/.cargo/git
-          key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-cargo-index-${{ hashFiles('fast_file_flow/**/Cargo.lock') }}
 
       - name: Cache cargo build
         uses: actions/cache@v4
         with:
-          path: target
-          key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
+          path: fast_file_flow/target
+          key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('fast_file_flow/**/Cargo.lock') }}
 
       - name: Run cargo test
         run: cargo test --verbose
+        working-directory: fast_file_flow
