@@ -15,9 +15,9 @@ pub fn load_csv() -> String {
     return path;
 }
 
+use futures::StreamExt;
 use std::error::Error;
 use std::path::Path;
-use futures::StreamExt;
 
 pub async fn read_csv<P: AsRef<Path>>(filename: P, max: u8) -> Result<(), Box<dyn Error>> {
     let file = std::fs::File::open(filename)?;

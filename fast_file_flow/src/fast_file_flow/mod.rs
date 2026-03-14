@@ -57,7 +57,7 @@ pub struct FastFileFlow {
     header: scrollable::Id,
     body: scrollable::Id,
     footer: scrollable::Id,
-    columns: Vec<IcedColumn>,    
+    columns: Vec<IcedColumn>,
     rows: Vec<IcedRow>,
     file_loaded: String,
     progress: f32,
@@ -71,7 +71,7 @@ pub struct FastFileFlow {
     search_value: String,
     ai_result: String,
     ai_image: String,
-    columns_backup:Vec<IcedColumn>,
+    columns_backup: Vec<IcedColumn>,
     header_checked_backup: Vec<SimpleColumn>,
     result_content: Content,
 }
@@ -110,10 +110,10 @@ pub enum FastFileFlowMessage {
     SearchOnSubmit(),
     SyncHeader(scrollable::AbsoluteOffset),
     Resizing(usize, f32),
-    Resized,    
+    Resized,
     PreviewCompleted(Vec<IcedColumn>, Vec<IcedRow>),
     ShowAIButtonClick(),
-    AICompleted(AiModel,String, bool ),
+    AICompleted(AiModel, String, bool),
     AIAnalysisEvent(AiModel),
     PreviewButtonCloseClick(),
     ActionPerformed(text_editor::Action),
@@ -156,11 +156,11 @@ impl FastFileFlow {
             ai_result: String::default(),
             ai_image: String::default(),
             columns_backup: vec![],
-            result_content : Content::new(),
-            header_checked_backup: vec![]
+            result_content: Content::new(),
+            header_checked_backup: vec![],
         }
     }
-    
+
     // Método para guardar selected_file y column_options en un archivo
     pub fn save_to_file(&self, file_path: &str) -> io::Result<()> {
         let file = File::create(file_path)?;
@@ -314,7 +314,12 @@ impl FastFileFlow {
             .into()
     }
 
-    fn build_header(&self) -> (Text<'_>, Row<'_, FastFileFlowMessage, Theme, iced::Renderer>) {
+    fn build_header(
+        &self,
+    ) -> (
+        Text<'_>,
+        Row<'_, FastFileFlowMessage, Theme, iced::Renderer>,
+    ) {
         let image = tooltip(
             get_logo(self.is_primary_logo),
             APP_TOOLTIP,
@@ -564,7 +569,6 @@ impl FastFileFlow {
                     Pixels(PANEL_FONT_SIZE)
                 )
             ],
-            
         ];
         let container_correlation = create_section_container(panel_coefficient);
 
@@ -633,7 +637,11 @@ impl FastFileFlow {
             PREVIEW_ICON,
         );
 
-        let button_save = get_menu_button(SAVE, FastFileFlowMessage::SaveProjectButtonClick(), SAVE_ICON);
+        let button_save = get_menu_button(
+            SAVE,
+            FastFileFlowMessage::SaveProjectButtonClick(),
+            SAVE_ICON,
+        );
 
         let button_export = get_menu_button(
             EXPORT,
@@ -887,7 +895,6 @@ impl FastFileFlow {
             let panel_dropdown = column![
                 row![combo_box],
                 row![TAB_SPACE, horizontal_space()],
-               
                 row![TAB_SPACE, horizontal_space(), close_button],
             ];
             create_section_container_width(panel_dropdown, PANEL_WIDTH + 100.0)
@@ -928,7 +935,7 @@ impl FastFileFlow {
             Button::new(Text::new(BUTTON_CLOSE)).on_press(FastFileFlowMessage::Router(Page::Main));
 
         let combo_box = self.build_header_combo_box();
-        
+
         if self.column_option_selected != Option::None {
             let index = self
                 .column_option_selected
@@ -1054,24 +1061,22 @@ impl FastFileFlow {
     }
 
     fn show_ai_screen(&self) -> Element<'_, FastFileFlowMessage, Theme, iced::Renderer> {
-
         let container_ai = self.build_ia_statistics().height(Length::Fill);
         let path = get_full_directory();
-        
+
         let logo = self.ai_image.as_str();
         let full_path = format!("{path}/{logo}");
         let image = Image::new(full_path)
             .width(Fixed(1024.0))
             .height(Fixed(768.0));
 
-        let wrapper = container(image).width(Length::Fill).width(Length::Fill).align_x(iced::alignment::Horizontal::Center)
+        let wrapper = container(image)
+            .width(Length::Fill)
+            .width(Length::Fill)
+            .align_x(iced::alignment::Horizontal::Center)
             .align_y(iced::alignment::Vertical::Top);
 
-        let render = row![
-            wrapper,
-            TAB_SPACE,
-            container_ai,
-        ];
+        let render = row![wrapper, TAB_SPACE, container_ai,];
         let border = Border {
             color: Color::from_rgb(0.315, 0.315, 0.315).into(),
             width: 1.0,
@@ -1091,53 +1096,57 @@ impl FastFileFlow {
     }
 
     fn build_ia_statistics(&self) -> Container<'_, FastFileFlowMessage, Theme, iced::Renderer> {
-       
         let mut header = self.header_checked.clone();
 
         let column_compare = header.pop().unwrap();
         let column_base = header.pop().unwrap();
 
-
         let close_button =
             Button::new(Text::new(BUTTON_CLOSE)).on_press(FastFileFlowMessage::Router(Page::Main));
-            let kmeans_button =
-            Button::new(Text::new("K Means")).on_press(FastFileFlowMessage::AIAnalysisEvent(AiModel::KMeans));
-            let pca_button =
-            Button::new(Text::new("PCA")).on_press(FastFileFlowMessage::AIAnalysisEvent(AiModel::PCA));
-            let dbscan_button =
-            Button::new(Text::new("Db Scan")).on_press(FastFileFlowMessage::AIAnalysisEvent(AiModel::DbScan));
-            let lr_button =
-            Button::new(Text::new("Linear R")).on_press(FastFileFlowMessage::AIAnalysisEvent(AiModel::LRegression));
-        
-        let panel_column_ai = column![
-            row![TAB_SPACE,  kmeans_button,TAB_SPACE,pca_button,TAB_SPACE,dbscan_button, TAB_SPACE,lr_button],
-            row![TAB_SPACE, horizontal_space() ],
+        let kmeans_button = Button::new(Text::new("K Means"))
+            .on_press(FastFileFlowMessage::AIAnalysisEvent(AiModel::KMeans));
+        let pca_button = Button::new(Text::new("PCA"))
+            .on_press(FastFileFlowMessage::AIAnalysisEvent(AiModel::PCA));
+        let dbscan_button = Button::new(Text::new("Db Scan"))
+            .on_press(FastFileFlowMessage::AIAnalysisEvent(AiModel::DbScan));
+        let lr_button = Button::new(Text::new("Linear R"))
+            .on_press(FastFileFlowMessage::AIAnalysisEvent(AiModel::LRegression));
 
+        let panel_column_ai = column![
+            row![
+                TAB_SPACE,
+                kmeans_button,
+                TAB_SPACE,
+                pca_button,
+                TAB_SPACE,
+                dbscan_button,
+                TAB_SPACE,
+                lr_button
+            ],
+            row![TAB_SPACE, horizontal_space()],
             row![get_text(AI_CLUSTER_CENTER, true)
                 .height(Length::Fixed(24.0))
                 .width(Length::Fixed(PANEL_WIDTH)),],
-                
-            row![get_text(column_base.header, true)
-            .height(Length::Fixed(24.0))
-           ,TAB_SPACE,
-            get_text(column_compare.header, true)
-                .height(Length::Fixed(24.0))
-                ,],
-            
-            row![text_editor(&self.result_content).height(Length::Fill) .on_action(FastFileFlowMessage::ActionPerformed)],
+            row![
+                get_text(column_base.header, true).height(Length::Fixed(24.0)),
+                TAB_SPACE,
+                get_text(column_compare.header, true).height(Length::Fixed(24.0)),
+            ],
+            row![text_editor(&self.result_content)
+                .height(Length::Fill)
+                .on_action(FastFileFlowMessage::ActionPerformed)],
             row![TAB_SPACE],
             row![TAB_SPACE, horizontal_space(), close_button],
             row![TAB_SPACE],
-            row![self.build_linear(),
-            row![TAB_SPACE],]
+            row![self.build_linear(), row![TAB_SPACE],]
         ];
         let container_analysis = create_section_container_width(panel_column_ai, PANEL_WIDTH);
         container_analysis
     }
-   
+
     fn show_preview_screen(&self) -> Element<'_, FastFileFlowMessage, Theme, iced::Renderer> {
-        let close_button =
-            Button::new(Text::new(BUTTON_CLOSE)). on_press(FastFileFlowMessage::PreviewButtonCloseClick());
+        let close_button = Button::new(Text::new(BUTTON_CLOSE))
+            .on_press(FastFileFlowMessage::PreviewButtonCloseClick());
 
         let panel_preview = self
             .build_preview_panel()
@@ -1223,7 +1232,7 @@ Mexico 2024",
                 Pixels(PANEL_FONT_SIZE)
             )],
             row![TAB_SPACE, horizontal_space()],
-            row![TAB_SPACE, vertical_space()],            
+            row![TAB_SPACE, vertical_space()],
             row![TAB_SPACE, horizontal_space(), close_button],
         ];
         create_section_container_width(panel_user, PANEL_WIDTH + 100.0)
@@ -1238,7 +1247,7 @@ Mexico 2024",
             Linear::default().height(15.0)
         }
     }
-    
+
     fn build_checkbox<F>(
         &self,
         index: usize,
@@ -1314,17 +1323,19 @@ Mexico 2024",
             && column_compare.classification == DataClassification::Quantitative
     }
 
-    pub fn is_quantitative_by_header(header_checked: Vec<SimpleColumn>) -> (bool, SimpleColumn,SimpleColumn){
+    pub fn is_quantitative_by_header(
+        header_checked: Vec<SimpleColumn>,
+    ) -> (bool, SimpleColumn, SimpleColumn) {
         let mut header = header_checked.clone();
         let column_compare = header.pop().unwrap();
         let column_base = header.pop().unwrap();
-      
-        let result = FastFileFlow::is_quantitative(&column_base , &column_compare );
-            
+
+        let result = FastFileFlow::is_quantitative(&column_base, &column_compare);
+
         (result, column_base, column_compare)
     }
 
-    fn router(&mut self, page: Page) {       
+    fn router(&mut self, page: Page) {
         self.page = page;
     }
 
@@ -1334,7 +1345,7 @@ Mexico 2024",
 
     fn set_error(&mut self, message: &str) {
         self.notification_message = message.to_string();
-    }    
+    }
 }
 
 fn create_section_container(

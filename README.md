@@ -226,6 +226,11 @@ cargo clean
 - [ ] Automatic feature engineering suggestions based on dataset characteristics (AI)
 - [ ] Smart data cleaning recommendations using pattern recognition and anomaly detection (AI)
 - [ ] Natural language querying to allow users to explore datasets using plain language commands (AI)
+- [ ] Dataset profiling with automatic statistical summaries and data quality scoring (AI)
+- [ ] Intelligent missing value imputation using statistical models and machine learning techniques (AI)
+- [ ] Automatic dataset classification to identify structured patterns and recommend analysis strategies (AI)
+- [ ] Semantic column detection (e.g., dates, emails, geographic data, identifiers) for smarter preprocessing (AI)
+- [ ] Automated data validation rules generation based on inferred dataset constraints (AI)
 
 ## Contributing
 
