@@ -16,11 +16,11 @@ pub fn load_csv() -> String {
 }
 
 use std::error::Error;
-use std::fs::File;
 use std::path::Path;
+use futures::StreamExt;
 
 pub async fn read_csv<P: AsRef<Path>>(filename: P, max: u8) -> Result<(), Box<dyn Error>> {
-    let file = File::open(filename)?;
+    let file = std::fs::File::open(filename)?;
     let mut rdr = csv::Reader::from_reader(file);
 
     if let Ok(header) = rdr.byte_headers() {
@@ -38,15 +38,6 @@ pub async fn read_csv<P: AsRef<Path>>(filename: P, max: u8) -> Result<(), Box<dy
 
     Ok(())
 }
-
-#[cfg(not(feature = "tokio"))]
-use futures::stream::StreamExt;
-#[cfg(feature = "tokio")]
-use tokio::fs::File;
-#[cfg(feature = "tokio")]
-use tokio1 as tokio;
-#[cfg(feature = "tokio")]
-use tokio_stream::StreamExt;
 
 pub async fn open_file_async(file_in: &str) -> Result<(), Box<dyn Error>> {
     let file_out: &str = &crate::util::add_processed_to_filename(file_in)

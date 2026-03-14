@@ -1,16 +1,7 @@
-extern crate linfa;
-extern crate linfa_clustering;
-extern crate ndarray;
-extern crate ndarray_rand;
-extern crate plotters;
-
 use crate::ai::shared::{Ranges, Shared};
 use crate::constants::path::KMEANS_IMAGE_RESULT;
 use crate::constants::sizes::{IMAGE_HEIGHT, IMAGE_POINT_SIZE, IMAGE_WIDTH};
-use linfa::{
-    traits::{Fit, Predict},
-    DatasetBase,
-};
+use linfa::prelude::*;
 use linfa_clustering::KMeans;
 use plotters::prelude::*;
 use std::error::Error;
@@ -44,7 +35,7 @@ impl KMeansClustering {
         }
         println!("Loading Data");
         let data = Shared::get_dataset_info(column1, column2);
-        let dataset = DatasetBase::from(data);
+        let dataset: Dataset<f64, (), ndarray::Ix1> = DatasetBase::from(data.view().to_owned());
 
         println!("Start Predicting");
         let model = KMeans::params(n_clusters)
@@ -53,7 +44,7 @@ impl KMeansClustering {
             .expect("KMeans fitting failed");
 
         // Predecir los clusters
-        let assigned_clusters = model.predict(&dataset);
+        let (assigned_clusters, _) = model.predict(&dataset).into_raw_vec_and_offset();
 
         println!("Get Ranges");
         let (min_x, max_x) = dataset

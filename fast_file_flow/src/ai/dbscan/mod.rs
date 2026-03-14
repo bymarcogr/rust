@@ -1,13 +1,8 @@
-extern crate linfa;
-extern crate linfa_clustering;
-extern crate ndarray;
-
-use crate::ai::dbscan::linfa::dataset::Labels;
 use crate::ai::shared::{Ranges, Shared};
 use crate::constants::path::DBSCAN_IMAGE_RESULT;
 use crate::constants::sizes::{IMAGE_HEIGHT, IMAGE_POINT_SIZE, IMAGE_WIDTH};
-use linfa::traits::Transformer;
-use linfa::DatasetBase;
+use linfa::dataset::Labels;
+use linfa::prelude::*;
 use linfa_clustering::Dbscan;
 use linfa_nn::distance::L2Dist;
 use linfa_nn::CommonNearestNeighbour;

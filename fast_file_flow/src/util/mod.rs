@@ -13,13 +13,13 @@ use crate::constants::sizes::{FONT_ICON_SIZE, FONT_NAME, MENU_BUTTON_HEIGHT, MEN
 use crate::fast_file_flow::FastFileFlowMessage;
 
 fn get_icon_from_file() -> Result<Icon, Error> {
-    let mut icon = image::io::Reader::new(std::io::Cursor::new(include_bytes!(
+    let mut icon = image::ImageReader::new(std::io::Cursor::new(include_bytes!(
         "../resources/images/icon.png"
     )));
 
     icon.set_format(image::ImageFormat::Png);
 
-    let icon_with_format: image::io::Reader<std::io::Cursor<&[u8; 1060]>> = icon;
+    let icon_with_format: image::ImageReader<std::io::Cursor<&[u8; 1060]>> = icon;
 
     let pixels = icon_with_format.decode().expect(ERROR_LOAD_ICON).to_rgba8();
 
