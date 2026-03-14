@@ -2,7 +2,9 @@
 
 A Rust-based GUI desktop application for data engineering tasks. Fast File Flow provides a visual interface for loading, filtering, processing, and analyzing CSV/JSON files with integrated machine learning capabilities.
 
-![Fast File Flow](src/resources/images/icon.png)
+<p>
+<img src="fast_file_flow/src/resources/images/logo-black.png" width="150">
+</p>
 
 ## Features
 
