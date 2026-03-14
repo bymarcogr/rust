@@ -232,7 +232,7 @@ cargo clean
 - [ ] Semantic column detection (e.g., dates, emails, geographic data, identifiers) for smarter preprocessing (AI)
 - [ ] Automated data validation rules generation based on inferred dataset constraints (AI)
 
-## Contributing 
+## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
